@@ -18,7 +18,7 @@
 
 ## 動作環境
 
-- macOS 26.5.2 以降
+- macOS 26.0 以降
 - ビルドには Xcode 26 以降（プロジェクト形式 `objectVersion = 90`）。Xcode 27.0 で動作確認済み
 - Swift 6.0
 
