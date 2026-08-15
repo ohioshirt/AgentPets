@@ -68,8 +68,13 @@ final class FloatingWindowController: NSWindowController {
         panel.contentView = container
 
         self.init(window: panel)
-        panel.delegate = self
+        // delegate は復元が終わってから。先に付けると restoreFrame() の setFrame が
+        // windowDidResize/windowDidMove を同期的に発火させ、saveFrame() がクランプ後の
+        // 値で保存値を即座に上書きしてしまう。ふだんは同じ値に戻るだけで無害だが、外部
+        // ディスプレイを外した状態で起動すると、主画面にクランプされた矩形で保存値が
+        // 潰れ、ディスプレイを挿し直しても元の位置に戻れなくなる。
         restoreFrame()
+        panel.delegate = self
     }
 
     /// 既定のサイズに戻す。位置はそのまま。
