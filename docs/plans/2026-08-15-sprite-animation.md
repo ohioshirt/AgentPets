@@ -2616,7 +2616,16 @@ final class FloatingWindowController: NSWindowController {
         panel.contentMinSize = Self.defaultContentSize
         panel.contentMaxSize = Self.maximumContentSize
 
-        panel.contentView = NSHostingView(rootView: rootView)
+        // `NSHostingView` をそのまま contentView にしてはいけない。`setFrame` の
+        // 約 0.1 秒後に AppKit がウィンドウを SwiftUI の理想サイズへ縮め、
+        // `sizingOptions` に関係なく起きるため、サイズの復元も「既定に戻す」も無効になる。
+        // 素の `NSView` を挟んで、追従は autoresizing に任せる。
+        let host = NSHostingView(rootView: rootView)
+        let container = NSView(frame: NSRect(origin: .zero, size: Self.defaultContentSize))
+        host.frame = container.bounds
+        host.autoresizingMask = [.width, .height]
+        container.addSubview(host)
+        panel.contentView = container
 
         self.init(window: panel)
         restoreFrame()
