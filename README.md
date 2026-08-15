@@ -6,13 +6,16 @@
 
 ## 状態
 
-| status    | 表示             | 色       |
-| --------- | ---------------- | -------- |
-| `idle`    | 🟢 `(・ω・)`      | グリーン |
-| `working` | ⚡ `(•̀ᴗ•́)و`      | イエロー |
-| `waiting` | ❓ `(･_･;)`       | オレンジ |
-| `success` | 🎉 `(٩(ˊxDˋ*)و)` | ブルー   |
-| `error`   | 💥 ``(´;ω;`)``   | レッド   |
+| status    | スプライト | 絵文字表示       | 色       |
+| --------- | ---------- | ---------------- | -------- |
+| `idle`    | idle       | 🟢 `(・ω・)`      | グリーン |
+| `working` | running    | ⚡ `(•̀ᴗ•́)و`      | イエロー |
+| `waiting` | waiting    | ❓ `(･_･;)`       | オレンジ |
+| `success` | jumping    | 🎉 `(٩(ˊxDˋ*)و)` | ブルー   |
+| `error`   | failed     | 💥 ``(´;ω;`)``   | レッド   |
+
+`success` は 1 度跳ねてから `idle` に戻る。`error` は落ち込んだまま次の通知を待つ。
+ペットが未設定のとき、およびアトラスを読めなかったときは絵文字表示になる。
 
 `working` のまま 10 秒間なにも届かなければ、自動的に `idle` へ戻る。
 
@@ -39,6 +42,29 @@ xcodebuild build -project AgentPets.xcodeproj -scheme AgentPets \
 
 バンドル識別子は Xcode が生成したプレースホルダのままなので、自分の環境で署名する場合は
 `PRODUCT_BUNDLE_IDENTIFIER` を差し替える。
+
+## ペットを表示する
+
+メニューバーのアイコンから「ペットフォルダを選択…」で、ペットパッケージが入った
+フォルダを選ぶ。フォルダの直下にある `pet.json` を持つディレクトリがペットとして並ぶ。
+
+```text
+pets/
+└── zundamon/
+    ├── pet.json
+    └── spritesheet.webp
+```
+
+`pet.json` に必要なのは `id` / `displayName` / `description` / `spritesheetPath` の 4 つ。
+アトラスは 1536×1872、8 列 × 9 行、セル 192×208、未使用セルは透過。行の並びは上から
+idle / running-right / running-left / waving / jumping / failed / waiting / running / review。
+
+Codex の hatch-pet スキルで作ったペットは `${CODEX_HOME:-$HOME/.codex}/pets/` に出力される。
+**AgentPets はこの場所を自動では見ない。** 見に行くのは、選んだフォルダだけ。
+
+ウィンドウの既定サイズは 96×104 pt。枠は無いが端をドラッグしてリサイズできる。ただし
+掴み代は辺 3pt・隅 12〜15pt しか無いので、実際には右下隅を掴むことになる。大きさと位置は
+次回起動時に復元される。メニューの「サイズを既定に戻す」で元に戻せる。
 
 ## 状態を送る
 
@@ -122,7 +148,14 @@ Claude Code に限らず、シェルから 1 行呼べる仕組みなら何か�
 
 **待ち受けポートを持たない。** HTTP サーバーのようにポートを開かないので、
 ブラウザで開いたページなどアプリ外から到達できる経路が生まれない。
-App Sandbox 有効のまま動作し、追加の entitlement を必要としない。
+
+**ファイルへの権限は 2 つ。** App Sandbox を有効にしたまま、
+`com.apple.security.files.user-selected.read-only` と
+`com.apple.security.files.bookmarks.app-scope` を使う。前者は選択パネルで選ばれたものを
+読むため、後者はその許可を次回起動以降も保つため。結果として、一度選んだフォルダは
+再許可なしで読み続けられる。読み取りのみで、書き込みはしない。
+
+既知の場所を推測して探すことはしない。ユーザーが選んでいないフォルダには触れない。
 
 **ただし送信元の認証はしない。** 同一ログインセッションの任意のプロセスが、
 同じ通知を投げられる。これは `DistributedNotificationCenter` の性質で、
@@ -138,8 +171,9 @@ App Sandbox 有効のまま動作し、追加の entitlement を必要としな�
 xcodebuild test -project AgentPets.xcodeproj -scheme AgentPets -destination 'platform=macOS'
 ```
 
-ペイロードの解析、不正入力の拒否、`working` のウォッチドッグ、
-通知センター経由の受信までを含む。
+ペイロードの解析、不正入力の拒否、`working` のウォッチドッグ、通知センター経由の受信に加え、
+`pet.json` の解析、アトラスの寸法検証、フレーム番号の算出、アニメーションの進み方、
+ペットパッケージの探索、ウィンドウ矩形の補正までを含む。
 
 ## ライセンス
 
