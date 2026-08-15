@@ -17,25 +17,30 @@ struct PetAnimatorTests {
     private let once = AnimationClip(
         frameIndices: [10, 11], durations: [0.05, 0.05], repeats: false
     )
+    /// 1 フレーム進んだあとは動かないクリップ。タイマーが遅れても `slot` が巻き戻らないので、
+    /// 「進んだこと」を負荷に左右されずに確かめられる。
+    private let advancesThenParks = AnimationClip(
+        frameIndices: [20, 21], durations: [0.05, 10], repeats: false
+    )
 
     @Test("同じクリップを再生し直すと先頭に戻る")
     func restartsOnSameClip() async throws {
         let animator = PetAnimator()
-        animator.play(looping)
-        try await Task.sleep(for: .milliseconds(120))
+        animator.play(advancesThenParks)
+        try await Task.sleep(for: .milliseconds(150))
         #expect(animator.slot != 0, "先に進んでいないと、やり直しを確かめられない")
 
-        animator.play(looping)
+        animator.play(advancesThenParks)
 
         #expect(animator.slot == 0)
-        #expect(animator.frameIndex == looping.frameIndices.first)
+        #expect(animator.frameIndex == advancesThenParks.frameIndices.first)
     }
 
     @Test("クリップを差し替えると先頭に戻る")
     func restartsOnNewClip() async throws {
         let animator = PetAnimator()
-        animator.play(looping)
-        try await Task.sleep(for: .milliseconds(120))
+        animator.play(advancesThenParks)
+        try await Task.sleep(for: .milliseconds(150))
         #expect(animator.slot != 0)
 
         animator.play(once)
@@ -61,7 +66,7 @@ struct PetAnimatorTests {
         animator.onFinished = { finished += 1 }
 
         animator.play(once)
-        try await Task.sleep(for: .milliseconds(250))
+        try await Task.sleep(for: .milliseconds(500))
 
         #expect(finished == 1)
         #expect(animator.slot == 1)
