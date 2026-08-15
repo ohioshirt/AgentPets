@@ -7,4 +7,8 @@ xcuserdata/
 
 # Build artifacts
 build/
+.build/
 DerivedData/
+
+# Claude Code local workspace
+.claude/
