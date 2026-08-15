@@ -23,7 +23,8 @@ struct AnimationClipTests {
         #expect(slot(0.30) == 2)
         #expect(slot(0.59) == 2)
         #expect(slot(0.60) == 0)   // 2周目の先頭
-        #expect(slot(1.25) == 2)   // 0.65 の位置
+        #expect(slot(0.95) == 2)   // 2周目の 0.35 の位置
+        #expect(slot(1.25) == 0)   // 3周目の 0.05 の位置
     }
 
     @Test("ループしない場合は最終フレームで止まる")
