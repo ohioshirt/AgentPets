@@ -45,6 +45,11 @@ struct ContentView: View {
                     .fill(viewModel.currentState.color.opacity(0.85))
                     .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 3)
             )
+            .scaleEffect(viewModel.currentState == .working ? 1.1 : 1.0)
+            .animation(
+                .easeInOut(duration: 0.6).repeatForever(autoreverses: true),
+                value: viewModel.currentState == .working
+            )
     }
 }
 
