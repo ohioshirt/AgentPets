@@ -1673,13 +1673,14 @@ final class PetAnimator {
         restart()
     }
 
+    // `deinit` は書けない。`@MainActor` なクラスの `deinit` は nonisolated なので、
+    // `timer` に触ると `main actor-isolated property 'timer' can not be referenced
+    // from a nonisolated context` でコンパイルが通らない。タイマーは `[weak self]` を持つ
+    // 非反復タイマーで、`stop()` と `restart()` が必ず無効化するため、取り残されても
+    // 1 度発火して `self` が nil のまま何もしない。
     func stop() {
         timer?.invalidate()
         timer = nil
-    }
-
-    deinit {
-        timer?.invalidate()
     }
 
     private func restart() {
