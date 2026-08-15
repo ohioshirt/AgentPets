@@ -91,6 +91,11 @@ nonisolated enum PetAnimation {
     }
 
     /// 経過時間から表示すべきフレームの位置を返す。時計に触らないのでテストしやすい。
+    ///
+    /// 境界の比較には許容誤差が要る。`0.1 + 0.2` は `0.30000000000000004` になり、
+    /// `[0.1, 0.2, 0.3]` の合計は `0.6000000000000001` になるので、厳密比較だと
+    /// 境界ちょうどの時刻が 1 つ手前のフレームに落ちる。既定スケジュールの最短フレームは
+    /// 110ms なので、1e-10 はそれより 9 桁小さく、実際の丸め誤差 1e-16 より 6 桁大きい。
     static func slot(elapsed: TimeInterval, durations: [TimeInterval], repeats: Bool) -> Int {
         guard !durations.isEmpty else { return 0 }
         let total = durations.reduce(0, +)
