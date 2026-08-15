@@ -80,8 +80,8 @@ security-scoped bookmark をアプリの再起動をまたいで使うには
 
 ```bash
 xcodebuild build -project AgentPets.xcodeproj -scheme AgentPets \
-  -configuration Debug -destination 'platform=macOS' >/dev/null 2>&1
-codesign -d --entitlements :- build/Debug/AgentPets.app 2>/dev/null
+  -configuration Debug -destination 'platform=macOS' -derivedDataPath build >/dev/null 2>&1
+codesign -d --entitlements :- build/Build/Products/Debug/AgentPets.app 2>/dev/null
 ```
 
 `app-sandbox` / `files.user-selected.read-only` / `get-task-allow` の 3 つが出る。
@@ -118,8 +118,8 @@ codesign -d --entitlements :- build/Debug/AgentPets.app 2>/dev/null
 
 ```bash
 xcodebuild build -project AgentPets.xcodeproj -scheme AgentPets \
-  -configuration Debug -destination 'platform=macOS' 2>&1 | tail -3
-codesign -d --entitlements :- build/Debug/AgentPets.app 2>/dev/null
+  -configuration Debug -destination 'platform=macOS' -derivedDataPath build 2>&1 | tail -3
+codesign -d --entitlements :- build/Build/Products/Debug/AgentPets.app 2>/dev/null
 ```
 
 期待: `** BUILD SUCCEEDED **` と、`app-sandbox` / `bookmarks.app-scope` /
@@ -2147,7 +2147,9 @@ xcodebuild test -project AgentPets.xcodeproj -scheme AgentPets -destination 'pla
 - [ ] **Step 3: 手で確かめる**
 
 ```bash
-open build/Debug/AgentPets.app
+xcodebuild build -project AgentPets.xcodeproj -scheme AgentPets \
+  -configuration Debug -destination 'platform=macOS' -derivedDataPath build >/dev/null
+open build/Build/Products/Debug/AgentPets.app
 ```
 
 順に確かめる。
@@ -2344,7 +2346,9 @@ xcodebuild test -project AgentPets.xcodeproj -scheme AgentPets -destination 'pla
 - [ ] **Step 2: 5 つの状態を順に送って見た目を確かめる**
 
 ```bash
-open build/Debug/AgentPets.app
+xcodebuild build -project AgentPets.xcodeproj -scheme AgentPets \
+  -configuration Debug -destination 'platform=macOS' -derivedDataPath build >/dev/null
+open build/Build/Products/Debug/AgentPets.app
 sleep 2
 for s in idle working waiting success error; do
   ./scripts/agentpets-notify.sh "$s" "$s の表示"
@@ -2602,7 +2606,9 @@ xcodebuild test -project AgentPets.xcodeproj -scheme AgentPets -destination 'pla
 - [ ] **Step 7: 手で確かめる**
 
 ```bash
-open build/Debug/AgentPets.app
+xcodebuild build -project AgentPets.xcodeproj -scheme AgentPets \
+  -configuration Debug -destination 'platform=macOS' -derivedDataPath build >/dev/null
+open build/Build/Products/Debug/AgentPets.app
 ```
 
 1. ウィンドウの右下隅にポインタを合わせるとカーソルが変わり、ドラッグでリサイズできる
@@ -2724,7 +2730,7 @@ Codex の hatch-pet スキルで作ったペットは `${CODEX_HOME:-$HOME/.code
 README が名指ししているファイル・パス・entitlement 名を、実際のコードと突き合わせる。
 
 ```bash
-codesign -d --entitlements :- build/Debug/AgentPets.app 2>/dev/null
+codesign -d --entitlements :- build/Build/Products/Debug/AgentPets.app 2>/dev/null
 grep -n "pet.json" AgentPets/PetLibrary.swift
 ```
 
@@ -2755,7 +2761,7 @@ EOF
 
 - `xcodebuild test -project AgentPets.xcodeproj -scheme AgentPets -destination 'platform=macOS'` が
   `** TEST SUCCEEDED **` を返す
-- `codesign -d --entitlements :- build/Debug/AgentPets.app` に
+- `codesign -d --entitlements :- build/Build/Products/Debug/AgentPets.app` に
   `com.apple.security.files.bookmarks.app-scope` が入っている
 - 実素材のペットを選び、5 つの状態すべてでアニメーションが出る
 - 同じ状態を連投しても毎回再生される
