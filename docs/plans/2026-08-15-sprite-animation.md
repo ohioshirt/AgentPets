@@ -1539,6 +1539,14 @@ struct PetAnimatorTests {
     private let once = AnimationClip(
         frameIndices: [10, 11], durations: [0.05, 0.05], repeats: false
     )
+    /// 1 フレーム進んだあとは動かないクリップ。タイマーが遅れても `slot` が巻き戻らないので、
+    /// 「進んだこと」を負荷に左右されずに確かめられる。
+    ///
+    /// ループするクリップでこれをやってはいけない。`looping` は合計 150ms なので、発火が
+    /// 遅れて 150ms を跨ぐと `slot` が 0 に戻り、待ち時間を伸ばしても伸ばした先でまた戻る。
+    private let advancesThenParks = AnimationClip(
+        frameIndices: [20, 21], durations: [0.05, 10], repeats: false
+    )
 
     // `play()` の直後に slot == 0 を見るだけでは、動いているリセットと no-op を区別できない
     // （初期値が 0 で、await が無いので run loop も回らない）。先に進めてから確かめる。
@@ -1546,21 +1554,21 @@ struct PetAnimatorTests {
     @Test("同じクリップを再生し直すと先頭に戻る")
     func restartsOnSameClip() async throws {
         let animator = PetAnimator()
-        animator.play(looping)
-        try await Task.sleep(for: .milliseconds(120))
+        animator.play(advancesThenParks)
+        try await Task.sleep(for: .milliseconds(150))
         #expect(animator.slot != 0, "先に進んでいないと、やり直しを確かめられない")
 
-        animator.play(looping)
+        animator.play(advancesThenParks)
 
         #expect(animator.slot == 0)
-        #expect(animator.frameIndex == looping.frameIndices.first)
+        #expect(animator.frameIndex == advancesThenParks.frameIndices.first)
     }
 
     @Test("クリップを差し替えると先頭に戻る")
     func restartsOnNewClip() async throws {
         let animator = PetAnimator()
-        animator.play(looping)
-        try await Task.sleep(for: .milliseconds(120))
+        animator.play(advancesThenParks)
+        try await Task.sleep(for: .milliseconds(150))
         #expect(animator.slot != 0)
 
         animator.play(once)
@@ -1586,7 +1594,7 @@ struct PetAnimatorTests {
         animator.onFinished = { finished += 1 }
 
         animator.play(once)
-        try await Task.sleep(for: .milliseconds(250))
+        try await Task.sleep(for: .milliseconds(500))
 
         #expect(finished == 1)
         #expect(animator.slot == 1)
@@ -2007,6 +2015,9 @@ struct ContentView: View {
     }
 
     /// ペットが選ばれていないか、アトラスを読めなかったときの表示。
+    ///
+    /// パルスはこちらにだけ残す。スプライト表示はアトラスが動きを持っているので要らないが、
+    /// 絵文字表示にはこれしか動きが無く、初回起動時は全員がこの経路を通る。
     private var emojiPet: some View {
         Text(viewModel.currentState.emoji)
             .font(.system(size: 28))
@@ -2015,6 +2026,11 @@ struct ContentView: View {
                 Circle()
                     .fill(viewModel.currentState.color.opacity(0.85))
                     .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 3)
+            )
+            .scaleEffect(viewModel.currentState == .working ? 1.1 : 1.0)
+            .animation(
+                .easeInOut(duration: 0.6).repeatForever(autoreverses: true),
+                value: viewModel.currentState == .working
             )
     }
 }
@@ -2037,17 +2053,27 @@ struct ContentView: View {
         guard let pet, let url = pet.manifest.spritesheetURL(in: pet.packageURL) else { return }
 
         let frame = pet.manifest.frame
+        let id = pet.id
         Task {
             let loaded = await Task.detached(priority: .userInitiated) {
                 try? SpriteSheet.load(contentsOf: url, frame: frame)
             }.value
+
+            // 読み込んでいる間に選択が変わっていたら捨てる。
+            // 先に始めた読み込みが後に終わると、選択とシートが食い違う。
+            guard self.selection?.id == id else { return }
             self.sheet = loaded
         }
     }
 ```
 
-`select(_:)` の末尾と `adopt(_:)` の末尾で `loadSheet(for: selection)` を呼ぶ。
-`restore()` の `selection` 決定後にも呼ぶ。
+呼ぶのは `select(_:)` の末尾と、`restore()` の `selection` 決定後の 2 か所だけ。
+
+`adopt(_:)` からは呼ばない。`adopt` は `selection` を書き換えないので、その時点の
+`selection` は古いままで、`setFolder` 経路では直後の `select(pets.first)` が始める
+正しい読み込みを、古い方が後から nil で上書きしうる。フォルダを変える経路は
+`setFolder` も `restore()` も最終的に選択が決まってから読み込む形になるので、
+2 か所で漏れは無い。
 
 - [ ] **Step 7: AppDelegate に library を渡す**
 
