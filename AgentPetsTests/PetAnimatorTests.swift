@@ -112,7 +112,7 @@ struct PetAnimatorTests {
         let animator = PetAnimator()
 
         animator.play(looping)
-        try await Task.sleep(for: .milliseconds(350))
+        try await Task.sleep(for: .milliseconds(250))
 
         #expect(animator.slot != 0, "ループが止まっていないことを確認")
     }
