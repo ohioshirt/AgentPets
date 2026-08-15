@@ -1,20 +1,19 @@
 //
 //  PetState.swift
-//  MyApp
+//  AgentPets
 //
 //  Created by shigeo on 2026/08/15.
 //
 
-import Foundation
 import SwiftUI
 
-enum PetState: String, Codable {
+enum PetState: String {
     case idle
     case working
     case waiting
     case success
     case error
-    
+
     var emoji: String {
         switch self {
         case .idle:    return "🟢 (・ω・)"
@@ -24,7 +23,7 @@ enum PetState: String, Codable {
         case .error:   return "💥 (´;ω;`)"
         }
     }
-    
+
     var color: Color {
         switch self {
         case .idle:    return .green

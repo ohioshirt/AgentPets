@@ -13,12 +13,12 @@ import Observation
 final class PetViewModel {
     var currentState: PetState = .idle
     var message: String = ""
-    
+
     private var guardTimer: Timer?
 
     /// working のまま音沙汰が無くなったときに idle へ戻すまでの秒数
     var workingTimeout: TimeInterval = 10
-    
+
     func apply(_ payload: StatusPayload) {
         currentState = payload.state
         message = payload.message

@@ -52,6 +52,7 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000010 /* AgentPets */,
+				000000000000000000000011 /* AgentPetsTests */,
 				000000000000000000000020 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -82,7 +83,7 @@
 				000000000000000000000010 /* AgentPets */,
 			);
 			name = AgentPets;
-			productName = MyApp;
+			productName = AgentPets;
 			productReference = 000000000000000000000120 /* AgentPets.app */;
 			productType = "com.apple.product-type.application";
 		};
