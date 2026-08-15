@@ -2620,15 +2620,21 @@ final class FloatingWindowController: NSWindowController {
         // 約 0.1 秒後に AppKit がウィンドウを SwiftUI の理想サイズへ縮め、
         // `sizingOptions` に関係なく起きるため、サイズの復元も「既定に戻す」も無効になる。
         // 素の `NSView` を挟んで、追従は autoresizing に任せる。
-        let host = NSHostingView(rootView: rootView)
         let container = NSView(frame: NSRect(origin: .zero, size: Self.defaultContentSize))
-        host.frame = container.bounds
-        host.autoresizingMask = [.width, .height]
-        container.addSubview(host)
+        let hostingView = NSHostingView(rootView: rootView)
+        hostingView.frame = container.bounds
+        hostingView.autoresizingMask = [.width, .height]
+        container.addSubview(hostingView)
         panel.contentView = container
 
         self.init(window: panel)
         restoreFrame()
+
+        // delegate は復元が終わってから付ける。先に付けると、復元の `setFrame` が
+        // `windowDidResize` / `windowDidMove` を同期的に発火させ、`saveFrame()` が
+        // クランプ後の値で保存値を潰す。外部ディスプレイを外した状態で起動したときに、
+        // そのディスプレイ向けの位置が永久に失われる。
+        panel.delegate = self
     }
 
     /// 既定のサイズに戻す。位置はそのまま。
