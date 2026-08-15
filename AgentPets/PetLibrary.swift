@@ -115,15 +115,20 @@ final class PetLibrary {
                 selection = nil
             } else {
                 selection = pets.first { $0.id == id } ?? pets.first
-                // If fallback to pets.first happened, save that choice
-                if selection?.id != id {
-                    defaults.set(selection?.id ?? "", forKey: Key.selection)
+                // If fallback to pets.first happened or pets is empty, save only if pet exists.
+                // Never write sentinel ("") when selection is nil — distinguishes between
+                // "user explicitly chose emoji" and "no pets available at restore time".
+                if let selection {
+                    defaults.set(selection.id, forKey: Key.selection)
                 }
             }
         } else {
             // No selection key at all - first time or upgrade path
             selection = pets.first
-            defaults.set(selection?.id ?? "", forKey: Key.selection)
+            // Only write if we found a pet to select. If pets is empty, leave key unset.
+            if let selection {
+                defaults.set(selection.id, forKey: Key.selection)
+            }
         }
         loadSheet(for: selection)
     }

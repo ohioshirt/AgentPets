@@ -316,4 +316,45 @@ struct PetLibraryTests {
         #expect(defaults.string(forKey: "selectedPetID") == nil)
         #expect(library.selection == nil)
     }
+
+    @Test("保存済みidがあるがペットが0匹のとき、保存値を上書きしない")
+    func doesNotOverwriteSelectionWhenPetsEmpty() throws {
+        let folder = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("lib-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+
+        let defaults = makeDefaults()
+        let bookmarks = FakeBookmarks()
+
+        // Simulate previously saved pet ID
+        defaults.set("previous-pet-id", forKey: "selectedPetID")
+
+        let library = PetLibrary(defaults: defaults, bookmarks: bookmarks)
+        library.setFolder(folder)
+        library.restore()
+
+        // Should not overwrite with sentinel when no pets available
+        #expect(defaults.string(forKey: "selectedPetID") == "previous-pet-id")
+        #expect(library.selection == nil)
+    }
+
+    @Test("未保存でペットが0匹のとき、保存値を書かない")
+    func doesNotWriteSelectionWhenPetsEmptyAndNoPrior() throws {
+        let folder = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("lib-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+
+        let defaults = makeDefaults()
+        let bookmarks = FakeBookmarks()
+
+        let library = PetLibrary(defaults: defaults, bookmarks: bookmarks)
+        library.setFolder(folder)
+        // No prior selection key
+
+        library.restore()
+
+        // Should not write key when no pets available
+        #expect(defaults.string(forKey: "selectedPetID") == nil)
+        #expect(library.selection == nil)
+    }
 }
