@@ -19,6 +19,13 @@ nonisolated enum WindowFrame {
         result.origin.y = Swift.min(Swift.max(result.origin.y, bounds.minY), bounds.maxY - result.height)
         return result
     }
+
+    /// 2 つの矩形が重なる面積。複数ディスプレイのうち、保存された矩形が
+    /// もともとどの画面にあったかを選ぶのに使う（`FloatingWindowController.screenBounds(for:)`）。
+    static func overlapArea(_ a: NSRect, _ b: NSRect) -> CGFloat {
+        let intersection = a.intersection(b)
+        return intersection.isNull ? 0 : intersection.width * intersection.height
+    }
 }
 
 /// ペットを載せる、枠なし・背景透過・常に最前面のパネル。
@@ -83,18 +90,36 @@ final class FloatingWindowController: NSWindowController {
         guard let window,
               let saved = UserDefaults.standard.string(forKey: Self.frameKey) else { return }
 
-        let bounds = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? .zero
-        guard !bounds.isEmpty else { return }
+        let savedRect = NSRectFromString(saved)
+        guard let bounds = Self.screenBounds(for: savedRect) else { return }
 
         window.setFrame(
             WindowFrame.clamp(
-                NSRectFromString(saved),
+                savedRect,
                 min: Self.defaultContentSize,
                 max: Self.maximumContentSize,
                 within: bounds
             ),
             display: false
         )
+    }
+
+    /// 復元先の画面は、保存された矩形と最も重なるものを選ぶ。
+    ///
+    /// この時点でウィンドウはまだ画面に載っておらず `window.screen` は nil を返す。
+    /// `NSScreen.main` はキーボードフォーカスのある画面なので、複数ディスプレイでは
+    /// 起動のたびに変わりうる。保存された矩形は、それ自身がどこにあったかを知っている。
+    private static func screenBounds(for frame: NSRect) -> NSRect? {
+        let screens = NSScreen.screens
+        guard !screens.isEmpty else { return nil }
+
+        let best = screens.max { left, right in
+            WindowFrame.overlapArea(frame, left.visibleFrame) < WindowFrame.overlapArea(frame, right.visibleFrame)
+        }
+        if let best, WindowFrame.overlapArea(frame, best.visibleFrame) > 0 { return best.visibleFrame }
+
+        // どの画面とも重ならない（外したディスプレイに置いていた等）。主画面に引き戻す。
+        return NSScreen.main?.visibleFrame ?? screens[0].visibleFrame
     }
 }
 

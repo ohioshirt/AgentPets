@@ -52,4 +52,25 @@ struct WindowFrameTests {
 
         #expect(WindowFrame.clamp(rect, min: minimum, max: maximum, within: screen) == rect)
     }
+
+    @Test("重なりの大きい矩形を選ぶ")
+    func picksLargerOverlap() {
+        let saved = NSRect(x: 100, y: 100, width: 96, height: 104)
+        let mostlyOverlapping = NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let barelyOverlapping = NSRect(x: 180, y: 180, width: 1440, height: 900)
+
+        let mostly = WindowFrame.overlapArea(saved, mostlyOverlapping)
+        let barely = WindowFrame.overlapArea(saved, barelyOverlapping)
+
+        #expect(mostly > barely)
+        #expect(barely > 0)
+    }
+
+    @Test("どの候補とも重ならなければ選ばれない")
+    func returnsZeroWhenNoOverlap() {
+        let saved = NSRect(x: 100, y: 100, width: 96, height: 104)
+        let farAway = NSRect(x: 5000, y: 5000, width: 1440, height: 900)
+
+        #expect(WindowFrame.overlapArea(saved, farAway) == 0)
+    }
 }
