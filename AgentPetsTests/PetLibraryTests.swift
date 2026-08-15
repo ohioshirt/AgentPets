@@ -230,4 +230,58 @@ struct PetLibraryTests {
         #expect(second.isFolderMissing == false)
         #expect(second.pets.isEmpty == false)
     }
+
+    @Test("絵文字で表示を選んで再起動しても絵文字のまま")
+    func presservesEmojiSelection() throws {
+        let folder = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("lib-\(UUID().uuidString)", isDirectory: true)
+        let package = folder.appendingPathComponent("zundamon", isDirectory: true)
+        try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
+        try Data("""
+        { "id": "zundamon", "displayName": "Zundamon",
+          "description": "d", "spritesheetPath": "spritesheet.webp" }
+        """.utf8).write(to: package.appendingPathComponent("pet.json"))
+
+        let defaults = makeDefaults()
+        let bookmarks = FakeBookmarks()
+
+        let first = PetLibrary(defaults: defaults, bookmarks: bookmarks)
+        first.setFolder(folder)
+        first.select(nil)  // Select emoji mode
+        #expect(first.selection == nil)
+
+        let second = PetLibrary(defaults: defaults, bookmarks: bookmarks)
+        second.restore()
+
+        #expect(second.selection == nil, "絵文字表示が保存されていない")
+    }
+
+    @Test("フォールバックで選ばれたペットが保存される")
+    func savesSelectedPetFromFallback() throws {
+        let folder = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("lib-\(UUID().uuidString)", isDirectory: true)
+        for id in ["zundamon", "moka"] {
+            let package = folder.appendingPathComponent(id, isDirectory: true)
+            try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
+            try Data("""
+            { "id": "\(id)", "displayName": "\(id)",
+              "description": "d", "spritesheetPath": "spritesheet.webp" }
+            """.utf8).write(to: package.appendingPathComponent("pet.json"))
+        }
+
+        let defaults = makeDefaults()
+        let bookmarks = FakeBookmarks()
+
+        // Simulate selection saved as invalid pet ID
+        let first = PetLibrary(defaults: defaults, bookmarks: bookmarks)
+        first.setFolder(folder)
+        defaults.set("invalid-pet-id", forKey: "selectedPetID")
+
+        let second = PetLibrary(defaults: defaults, bookmarks: bookmarks)
+        second.restore()
+
+        // Should fall back to first pet and save it
+        #expect(second.selection != nil)
+        #expect(defaults.string(forKey: "selectedPetID") == second.selection?.id)
+    }
 }

@@ -49,10 +49,14 @@ struct PetSpriteView: View {
         }
         .onChange(of: eventID) { play(state) }
         .onChange(of: reduceMotion) { animator.isStill = reduceMotion }
-        .onDisappear { animator.stop() }
+        .onDisappear {
+            animator.stop()
+            animator.onFinished = nil
+        }
     }
 
     private func play(_ state: PetState) {
+        guard let clip = PetAnimation.clip(for: state, manifest: manifest, sheet: sheet) else { return }
         // クロージャは struct の self を値で捕まえるので、`onAppear` で一度張ると
         // その時点の state が焼き付く。再生のたびに、いま鳴らす state で張り直す。
         // success は跳ねたあと待機に戻る。error は落ち込んだまま留まる。
@@ -60,6 +64,6 @@ struct PetSpriteView: View {
             guard let next = PetAnimation.stateAnimations[state]?.then else { return }
             play(next)
         }
-        animator.play(PetAnimation.clip(for: state, manifest: manifest, sheet: sheet))
+        animator.play(clip)
     }
 }

@@ -109,9 +109,20 @@ final class PetLibrary {
 
         adopt(resolved.url)
         if let id = defaults.string(forKey: Key.selection) {
-            selection = pets.first { $0.id == id } ?? pets.first
+            if id.isEmpty {
+                // Empty string means emoji mode
+                selection = nil
+            } else {
+                selection = pets.first { $0.id == id } ?? pets.first
+                // If fallback to pets.first happened, save that choice
+                if selection?.id != id {
+                    defaults.set(selection?.id ?? "", forKey: Key.selection)
+                }
+            }
         } else {
+            // No selection key at all - first time or upgrade path
             selection = pets.first
+            defaults.set(selection?.id ?? "", forKey: Key.selection)
         }
         loadSheet(for: selection)
     }
@@ -127,11 +138,8 @@ final class PetLibrary {
 
     func select(_ pet: Pet?) {
         selection = pet
-        if let pet {
-            defaults.set(pet.id, forKey: Key.selection)
-        } else {
-            defaults.removeObject(forKey: Key.selection)
-        }
+        // Empty string represents emoji mode; non-empty is a pet ID
+        defaults.set(pet?.id ?? "", forKey: Key.selection)
         loadSheet(for: selection)
     }
 
