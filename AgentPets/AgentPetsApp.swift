@@ -33,6 +33,9 @@ struct AgentPetsApp: App {
             }
 
             Divider()
+            Button("サイズを既定に戻す") { appDelegate.windowController?.resetSize() }
+
+            Divider()
             Button("Quit") { NSApplication.shared.terminate(nil) }
         }
     }
@@ -63,7 +66,7 @@ struct AgentPetsApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let viewModel = PetViewModel()
     let library = PetLibrary()
-    private var windowController: FloatingWindowController?
+    private(set) var windowController: FloatingWindowController?
     private var listener: StatusNotificationListener?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
