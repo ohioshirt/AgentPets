@@ -19,8 +19,11 @@ struct PetAnimatorTests {
     )
     /// 1 フレーム進んだあとは動かないクリップ。タイマーが遅れても `slot` が巻き戻らないので、
     /// 「進んだこと」を負荷に左右されずに確かめられる。
+    ///
+    /// ループするクリップでこれをやってはいけない。`looping` は合計 150ms なので、発火が
+    /// 遅れて 150ms を跨ぐと `slot` が 0 に戻り、待ち時間を伸ばしても伸ばした先でまた戻る。
     private let advancesThenParks = AnimationClip(
-        frameIndices: [20, 21], durations: [0.05, 10], repeats: false
+        frameIndices: [20, 21], durations: [0.02, 10], repeats: false
     )
 
     @Test("同じクリップを再生し直すと先頭に戻る")

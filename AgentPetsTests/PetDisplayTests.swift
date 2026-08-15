@@ -29,6 +29,7 @@ struct PetDisplayTests {
     func usesSpriteWhenLoaded() throws {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("atlas-\(UUID().uuidString).png")
+        defer { try? FileManager.default.removeItem(at: url) }
         let context = try #require(CGContext(
             data: nil, width: 1536, height: 1872, bitsPerComponent: 8, bytesPerRow: 0,
             space: CGColorSpaceCreateDeviceRGB(),
