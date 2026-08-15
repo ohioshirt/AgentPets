@@ -63,4 +63,27 @@ struct PetViewModelTests {
         #expect(viewModel.currentState == .working)
         #expect(viewModel.message == "2件目")
     }
+
+    @Test("applyのたびにイベント連番が増える")
+    func incrementsEventID() {
+        let viewModel = PetViewModel()
+        let start = viewModel.eventID
+
+        viewModel.apply(StatusPayload(state: .working, message: "1"))
+        viewModel.apply(StatusPayload(state: .waiting, message: "2"))
+
+        #expect(viewModel.eventID == start + 2)
+    }
+
+    @Test("同じ状態が連続してもイベント連番は増える")
+    func incrementsEventIDOnRepeatedState() {
+        let viewModel = PetViewModel()
+
+        viewModel.apply(StatusPayload(state: .success, message: "done"))
+        let first = viewModel.eventID
+        viewModel.apply(StatusPayload(state: .success, message: "done"))
+
+        #expect(viewModel.eventID == first + 1)
+        #expect(viewModel.currentState == .success)
+    }
 }
