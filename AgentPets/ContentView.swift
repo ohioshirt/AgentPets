@@ -19,13 +19,20 @@ struct ContentView: View {
 
             switch PetDisplay.mode(sheet: library.sheet) {
             case .sprite:
-                if let sheet = library.sheet, let pet = library.selection {
+                if let sheet = library.sheet,
+                   let pet = library.selection,
+                   PetAnimation.clip(for: viewModel.currentState,
+                                     manifest: pet.manifest, sheet: sheet) != nil {
                     PetSpriteView(
                         sheet: sheet,
                         manifest: pet.manifest,
                         state: viewModel.currentState,
                         eventID: viewModel.eventID
                     )
+                } else {
+                    // アトラスは読めたが、この状態のクリップを組めなかった。
+                    // 規約外のパッケージでも、黙って透明になるより絵文字が出る方がよい。
+                    emojiPet
                 }
             case .emoji:
                 emojiPet
