@@ -744,7 +744,8 @@ struct AnimationClipTests {
         #expect(slot(0.30) == 2)
         #expect(slot(0.59) == 2)
         #expect(slot(0.60) == 0)   // 2周目の先頭
-        #expect(slot(1.25) == 2)   // 0.65 の位置
+        #expect(slot(0.95) == 2)   // 2周目の 0.35 の位置
+        #expect(slot(1.25) == 0)   // 3周目の 0.05 の位置
     }
 
     @Test("ループしない場合は最終フレームで止まる")
@@ -944,6 +945,11 @@ nonisolated enum PetAnimation {
     }
 
     /// 経過時間から表示すべきフレームの位置を返す。時計に触らないのでテストしやすい。
+    ///
+    /// 境界の比較には許容誤差が要る。`0.1 + 0.2` は `0.30000000000000004` になり、
+    /// `[0.1, 0.2, 0.3]` の合計は `0.6000000000000001` になるので、厳密比較だと
+    /// 境界ちょうどの時刻が 1 つ手前のフレームに落ちる（`slot(0.30)` が 2 でなく 1、
+    /// `slot(0.60)` が 0 でなく 2 になる）。ミリ秒単位の表より十分細かい誤差を許すこと。
     static func slot(elapsed: TimeInterval, durations: [TimeInterval], repeats: Bool) -> Int {
         guard !durations.isEmpty else { return 0 }
         let total = durations.reduce(0, +)
