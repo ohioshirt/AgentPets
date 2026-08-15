@@ -45,6 +45,10 @@ xcodebuild build -project AgentPets.xcodeproj -scheme AgentPets \
 バンドル識別子は Xcode が生成したプレースホルダのままなので、自分の環境で署名する場合は
 `PRODUCT_BUNDLE_IDENTIFIER` を差し替える。
 
+起動しても Dock にアイコンは出ず、Cmd+Tab のアプリケーションスイッチャーにも並ばない
+（`LSUIElement`）。メニューバーアプリと同じ扱いで、操作の入口はメニューバーのアイコンだけになる。
+終了もそこの「Quit」から行う。アプリ自身のメニューバーを持たないので、Cmd+Q は効かない。
+
 ## ペットを表示する
 
 メニューバーのアイコンから「ペットフォルダを選択…」で、ペットパッケージが入った

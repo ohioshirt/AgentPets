@@ -204,6 +204,17 @@ Codex CLI のバイナリには、これを拡張した内部モデルが入っ�
 モーダル表示は次の RunLoop に回す。このアプリは `LSUIElement` を設定しておらず Dock に出る
 通常のアプリなので、アクティブ化そのものは問題にならない。
 
+**追記 2026-08-15 —** その後 `INFOPLIST_KEY_LSUIElement = YES` を入れ、Dock とアプリケーション
+スイッチャーから外した。上の段落の「Dock に出る通常のアプリなので」という根拠は、もう成り立たない。
+ただし `NSApp.activate()` を挟む処置そのものは変えていない。`LSUIElement = 1` に対応する
+`NSApplication.ActivationPolicy.accessory` は "The application doesn't appear in the Dock and
+doesn't have a menu bar, but it may be activated programmatically or by clicking on one of its
+windows." と定義されており、プログラムからのアクティブ化は引き続き有効なため。
+
+`.accessory` ではアプリ自身のメニューバーが無くなる。終了は `MenuBarExtra` の Quit に一本化される
+（Cmd+Q は効かない）。Edit メニューが無いことで `NSOpenPanel` のパス入力欄で Cmd+V などの編集
+ショートカットが効かなくなる可能性については `未検証`。
+
 選択中のペットは `id` で `UserDefaults` に保存する。
 
 `AgentPets.entitlements` を新設し、**`com.apple.security.files.bookmarks.app-scope` だけ**を書く。
