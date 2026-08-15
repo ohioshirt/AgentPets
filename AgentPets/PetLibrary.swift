@@ -78,6 +78,7 @@ final class PetLibrary {
     private(set) var selection: Pet?
     private(set) var folderURL: URL?
     private(set) var isFolderMissing = false
+    private(set) var sheet: SpriteSheet?
 
     private let defaults: UserDefaults
     private let bookmarks: any BookmarkResolving
@@ -112,6 +113,7 @@ final class PetLibrary {
         } else {
             selection = pets.first
         }
+        loadSheet(for: selection)
     }
 
     /// `NSOpenPanel` で選ばれたフォルダを登録する。
@@ -129,6 +131,30 @@ final class PetLibrary {
             defaults.set(pet.id, forKey: Key.selection)
         } else {
             defaults.removeObject(forKey: Key.selection)
+        }
+        loadSheet(for: selection)
+    }
+
+    /// 選択中のペットのアトラスを読む。読めなければ nil のままにして、絵文字表示に落とす。
+    ///
+    /// `adopt(_:)` からは呼ばない。`adopt()` は `selection` を書き換えないので、呼ばれた時点の
+    /// `selection` は古いままで、`setFolder` 経路では直後の `select(pets.first)` が正しい読み込みを
+    /// 始めてしまう。古い方の完了が後にずれ込むと `sheet` を nil で上書きしかねない。
+    private func loadSheet(for pet: Pet?) {
+        sheet = nil
+        guard let pet, let url = pet.manifest.spritesheetURL(in: pet.packageURL) else { return }
+
+        let frame = pet.manifest.frame
+        let id = pet.id
+        Task {
+            let loaded = await Task.detached(priority: .userInitiated) {
+                try? SpriteSheet.load(contentsOf: url, frame: frame)
+            }.value
+
+            // 読み込んでいる間に選択が変わっていたら捨てる。
+            // 先に始めた読み込みが後に終わると、選択とシートが食い違う。
+            guard self.selection?.id == id else { return }
+            self.sheet = loaded
         }
     }
 

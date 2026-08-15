@@ -23,11 +23,16 @@ struct AgentPetsApp: App {
 /// リスナーが即座に解放されて購読が外れるため、delegate 側で所有する。
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let viewModel = PetViewModel()
+    let library = PetLibrary()
     private var windowController: FloatingWindowController?
     private var listener: StatusNotificationListener?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let controller = FloatingWindowController(rootView: ContentView(viewModel: viewModel))
+        library.restore()
+
+        let controller = FloatingWindowController(
+            rootView: ContentView(viewModel: viewModel, library: library)
+        )
         controller.showWindow(nil)
         windowController = controller
 
