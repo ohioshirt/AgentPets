@@ -97,6 +97,22 @@ struct PetDiscoveryTests {
 
         #expect(PetDiscovery.pets(in: folder).map(\.id) == ["aria", "moka", "zundamon"])
     }
+
+    @Test("idが空のパッケージは拾わない")
+    func skipsEmptyIdPackage() throws {
+        let folder = try makeFolder()
+        try makePackage(in: folder, id: "zundamon")
+        let empty = folder.appendingPathComponent("empty-id", isDirectory: true)
+        try FileManager.default.createDirectory(at: empty, withIntermediateDirectories: true)
+        try Data("""
+        {
+          "id": "", "displayName": "Empty",
+          "description": "d", "spritesheetPath": "spritesheet.webp"
+        }
+        """.utf8).write(to: empty.appendingPathComponent("pet.json"))
+
+        #expect(PetDiscovery.pets(in: folder).map(\.id) == ["zundamon"])
+    }
 }
 
 @Suite("PetLibrary")
@@ -232,7 +248,7 @@ struct PetLibraryTests {
     }
 
     @Test("絵文字で表示を選んで再起動しても絵文字のまま")
-    func presservesEmojiSelection() throws {
+    func preservesEmojiSelection() throws {
         let folder = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("lib-\(UUID().uuidString)", isDirectory: true)
         let package = folder.appendingPathComponent("zundamon", isDirectory: true)
@@ -283,5 +299,21 @@ struct PetLibraryTests {
         // Should fall back to first pet and save it
         #expect(second.selection != nil)
         #expect(defaults.string(forKey: "selectedPetID") == second.selection?.id)
+    }
+
+    @Test("0匹のフォルダを登録しても選択キーを書かない")
+    func doesNotWriteSelectionForEmptyFolder() throws {
+        let folder = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("lib-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+
+        let defaults = makeDefaults()
+        let bookmarks = FakeBookmarks()
+
+        let library = PetLibrary(defaults: defaults, bookmarks: bookmarks)
+        library.setFolder(folder)
+
+        #expect(defaults.string(forKey: "selectedPetID") == nil)
+        #expect(library.selection == nil)
     }
 }

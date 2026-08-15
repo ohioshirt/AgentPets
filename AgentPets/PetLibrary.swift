@@ -28,7 +28,8 @@ nonisolated enum PetDiscovery {
         return entries.compactMap { entry -> Pet? in
             guard (try? entry.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true,
                   let data = try? Data(contentsOf: entry.appendingPathComponent(manifestName)),
-                  let manifest = try? PetManifest.decode(data) else { return nil }
+                  let manifest = try? PetManifest.decode(data),
+                  !manifest.id.isEmpty else { return nil }
 
             return Pet(
                 id: manifest.id,
@@ -133,7 +134,12 @@ final class PetLibrary {
             defaults.set(data, forKey: Key.bookmark)
         }
         adopt(url)
-        select(pets.first)
+        if !pets.isEmpty {
+            select(pets.first)
+        } else {
+            selection = nil
+            loadSheet(for: nil)
+        }
     }
 
     func select(_ pet: Pet?) {
