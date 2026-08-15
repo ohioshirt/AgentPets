@@ -1540,13 +1540,20 @@ struct PetAnimatorTests {
         frameIndices: [10, 11], durations: [0.05, 0.05], repeats: false
     )
 
-    @Test("再生を始めると先頭フレームから出す")
-    func startsAtFirstFrame() {
+    // `play()` の直後に slot == 0 を見るだけでは、動いているリセットと no-op を区別できない
+    // （初期値が 0 で、await が無いので run loop も回らない）。先に進めてから確かめる。
+    // 同じクリップの再生し直しは、同じ状態が連投されたときに再生をやり直す仕組みの土台でもある。
+    @Test("同じクリップを再生し直すと先頭に戻る")
+    func restartsOnSameClip() async throws {
         let animator = PetAnimator()
+        animator.play(looping)
+        try await Task.sleep(for: .milliseconds(120))
+        #expect(animator.slot != 0, "先に進んでいないと、やり直しを確かめられない")
 
         animator.play(looping)
 
         #expect(animator.slot == 0)
+        #expect(animator.frameIndex == looping.frameIndices.first)
     }
 
     @Test("クリップを差し替えると先頭に戻る")
