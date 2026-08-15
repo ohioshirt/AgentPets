@@ -132,7 +132,9 @@ nonisolated enum PetAnimation {
         if !repeats && position >= total - 1e-10 { return nil }
 
         var completedCycles = repeats ? (position / total).rounded(.down) : 0
-        if repeats && position >= total - 1e-10 {
+        // 「いま居る周期の終わり」と比べる。`total` と比べると 2 周目以降は常に真になり、
+        // `rounded(.down)` が既に数えた周をもう一度足してしまう。
+        if repeats && position >= (completedCycles + 1) * total - 1e-10 {
             completedCycles += 1
         }
         var accumulated: TimeInterval = 0

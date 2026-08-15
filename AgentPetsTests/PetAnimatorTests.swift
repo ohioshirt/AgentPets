@@ -106,4 +106,14 @@ struct PetAnimatorTests {
 
         #expect(animator.frameIndex == 10)
     }
+
+    @Test("ループするクリップは2周目以降も進み続ける")
+    func keepAdvancingAcrossLoops() async throws {
+        let animator = PetAnimator()
+
+        animator.play(looping)
+        try await Task.sleep(for: .milliseconds(350))
+
+        #expect(animator.slot != 0, "ループが止まっていないことを確認")
+    }
 }

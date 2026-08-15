@@ -69,6 +69,13 @@ struct AnimationClipTests {
         #expect(next(5.00) == nil)
     }
 
+    @Test("2周目以降も境界が1周分ずれない")
+    func keepsBoundariesAcrossLoops() throws {
+        let next = { PetAnimation.nextBoundary(after: $0, durations: durations, repeats: true) }
+        #expect(try #require(next(0.65)).isApproximately(0.7))   // 2周目の 0.05 の位置
+        #expect(try #require(next(1.25)).isApproximately(1.3))   // 3周目の 0.05 の位置
+    }
+
     @Test("5つの状態すべてにアトラス上の行が対応する")
     func mapsEveryState() {
         let states: Set<PetState> = [.idle, .working, .waiting, .success, .error]
