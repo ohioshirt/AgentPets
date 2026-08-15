@@ -1952,7 +1952,6 @@ struct PetSpriteView: View {
         }
         .onAppear {
             animator.isStill = reduceMotion
-            animator.onFinished = { advanceAfterOneShot() }
             play(state)
         }
         .onChange(of: eventID) { play(state) }
@@ -1960,14 +1959,17 @@ struct PetSpriteView: View {
         .onDisappear { animator.stop() }
     }
 
-    private func play(_ state: PetState) {
-        animator.play(PetAnimation.clip(for: state, manifest: manifest, sheet: sheet))
-    }
-
     /// success は跳ねたあと待機に戻る。error は落ち込んだまま留まる。
-    private func advanceAfterOneShot() {
-        guard let next = PetAnimation.stateAnimations[state]?.then else { return }
-        play(next)
+    ///
+    /// `onFinished` をここで張り直すのが要。`onAppear` で一度だけ張ると、クロージャが
+    /// struct の `self` を値で捕まえるため、その時点の `state` が焼き付く。`onAppear` は
+    /// 表示ごとに 1 回しか走らないので、以後どの状態で終わっても初回の `state` を見てしまう。
+    private func play(_ state: PetState) {
+        animator.onFinished = {
+            guard let next = PetAnimation.stateAnimations[state]?.then else { return }
+            play(next)
+        }
+        animator.play(PetAnimation.clip(for: state, manifest: manifest, sheet: sheet))
     }
 }
 ```
@@ -1998,13 +2000,21 @@ struct ContentView: View {
 
             switch PetDisplay.mode(sheet: library.sheet) {
             case .sprite:
-                if let sheet = library.sheet, let pet = library.selection {
+                // アトラスが読めても、この状態のクリップを組めないことがある（規約外の
+                // パッケージなど）。そのまま描くとウィンドウが理由も分からず透明になるので、
+                // 絵文字に落とす。
+                if let sheet = library.sheet,
+                   let pet = library.selection,
+                   PetAnimation.clip(for: viewModel.currentState,
+                                     manifest: pet.manifest, sheet: sheet) != nil {
                     PetSpriteView(
                         sheet: sheet,
                         manifest: pet.manifest,
                         state: viewModel.currentState,
                         eventID: viewModel.eventID
                     )
+                } else {
+                    emojiPet
                 }
             case .emoji:
                 emojiPet
