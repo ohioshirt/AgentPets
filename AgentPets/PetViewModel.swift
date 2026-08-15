@@ -2,6 +2,8 @@
 //  PetViewModel.swift
 //  AgentPets
 //
+//  Created by shigeo on 2026/08/15.
+//
 
 import Foundation
 import Observation

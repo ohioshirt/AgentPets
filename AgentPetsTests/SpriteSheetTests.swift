@@ -120,4 +120,24 @@ struct SpriteSheetTests {
         #expect(frame.width == 192)
         #expect(frame.height == 208)
     }
+
+    @Test("width/height/columnsが0以下のFrameSpecは失敗する")
+    func rejectsInvalidFrameSpec() throws {
+        let url = try makeAtlas(width: 120, height: 80)
+
+        // width が 0 以下
+        #expect(throws: SpriteSheetError.invalidFrameSpec) {
+            try SpriteSheet.load(contentsOf: url, frame: PetManifest.FrameSpec(width: 0, height: 20, columns: 3))
+        }
+
+        // height が 0 以下
+        #expect(throws: SpriteSheetError.invalidFrameSpec) {
+            try SpriteSheet.load(contentsOf: url, frame: PetManifest.FrameSpec(width: 40, height: 0, columns: 3))
+        }
+
+        // columns が 0 以下
+        #expect(throws: SpriteSheetError.invalidFrameSpec) {
+            try SpriteSheet.load(contentsOf: url, frame: PetManifest.FrameSpec(width: 40, height: 20, columns: 0))
+        }
+    }
 }
