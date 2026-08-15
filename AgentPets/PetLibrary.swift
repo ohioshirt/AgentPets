@@ -158,6 +158,13 @@ final class PetLibrary {
         }
     }
 
+    /// 終了時に最後の 1 つを返す。`@MainActor` なクラスの `deinit` からは
+    /// `accessedURL` に触れないので、呼び出し側から明示的に呼ぶ。
+    func releaseFolderAccess() {
+        accessedURL?.stopAccessingSecurityScopedResource()
+        accessedURL = nil
+    }
+
     /// アクセス権は 1 フォルダにつき 1 回だけ取る。取り直す前に必ず前の分を返す。
     /// 返さずに積み上げるとカーネル資源を漏らし、いずれ Powerbox が使えなくなる。
     private func adopt(_ url: URL) {

@@ -82,4 +82,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         listener.start()
         self.listener = listener
     }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        library.releaseFolderAccess()
+    }
 }
