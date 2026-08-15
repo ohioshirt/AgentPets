@@ -15,30 +15,23 @@ final class PetViewModel {
     var message: String = ""
     
     private var guardTimer: Timer?
+
+    /// working のまま音沙汰が無くなったときに idle へ戻すまでの秒数
+    var workingTimeout: TimeInterval = 10
     
-    func updateStatus(statusString: String, message: String?) {
-        guard let newState = PetState(rawValue: statusString) else {
-            return
-        }
-        
-        self.currentState = newState
-        self.message = message ?? ""
-        
+    func apply(_ payload: StatusPayload) {
+        currentState = payload.state
+        message = payload.message
+
         guardTimer?.invalidate()
-        if newState == .working {
-            guardTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: false) { [weak self] _ in
-                    Task { [weak self] in
-                        await MainActor.run {
-                            guard let strongSelf = self else { return }
-                            if strongSelf.currentState == .working {
-                                strongSelf.currentState = .idle
-                                strongSelf.message = ""
-                                strongSelf.updateStatus(statusString: "idle", message: nil)
-                            }
-                        }
-                    }
-                }
+        guard payload.state == .working else { return }
+
+        // working のまま通知が途絶えた場合に備え、一定時間で idle へ戻す
+        guardTimer = Timer.scheduledTimer(withTimeInterval: workingTimeout, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, self.currentState == .working else { return }
+                self.apply(StatusPayload(state: .idle, message: ""))
+            }
         }
-        
     }
 }

@@ -2,36 +2,33 @@ import SwiftUI
 import Playgrounds
 
 @main struct MyApp: App {
-    @State private var viewModel = PetViewModel()
-    @State private var windowController: FloatingWindowController?
-    @State private var server: LocalHTTPServer?
-    
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     var body: some Scene {
         MenuBarExtra("Pet", systemImage: "pawprint.fill") {
             Button("Quit") {
                 NSApplication.shared.terminate(nil)
             }
         }
-        .setupHook {
-            if windowController == nil {
-                let petView = ContentView(viewModel: viewModel)
-                let controller = FloatingWindowController(rootView: petView)
-                controller.showWindow(nil)
-                self.windowController = controller
-                
-                // start HTTP server
-                let server = LocalHTTPServer()
-                server.start(port: 9999)
-                self.server = server
-            }
-        }
     }
 }
 
-extension Scene {
-    func setupHook(_ action: @escaping () -> Void) -> some Scene {
-        action()
-        return self
+/// ペットのウィンドウと通知リスナーはアプリと同じ寿命で生きる必要がある。
+/// Scene の body 評価中に `@State` へ書き戻すやり方では参照が保持されず、
+/// リスナーが即座に解放されて購読が外れるため、delegate 側で所有する。
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    private let viewModel = PetViewModel()
+    private var windowController: FloatingWindowController?
+    private var listener: StatusNotificationListener?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        let controller = FloatingWindowController(rootView: ContentView(viewModel: viewModel))
+        controller.showWindow(nil)
+        windowController = controller
+
+        let listener = StatusNotificationListener(viewModel: viewModel)
+        listener.start()
+        self.listener = listener
     }
 }
 

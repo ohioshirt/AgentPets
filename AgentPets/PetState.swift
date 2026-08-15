@@ -35,9 +35,3 @@ enum PetState: String, Codable {
         }
     }
 }
-
-// decoded inside NWConnection callbacks (nonisolated), so opt out of the default MainActor isolation
-nonisolated struct StatusRequest: Codable {
-    let status: String
-    let message: String
-}
