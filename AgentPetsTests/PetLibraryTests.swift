@@ -108,9 +108,11 @@ struct PetLibraryTests {
     private final class FakeBookmarks: BookmarkResolving {
         var stored: [Data: URL] = [:]
         var isStale = false
+        private var generation = 0
 
         func data(for url: URL) throws -> Data {
-            let data = Data(url.path.utf8)
+            generation += 1
+            let data = Data("\(url.path)#\(generation)".utf8)
             stored[data] = url
             return data
         }
@@ -198,5 +200,34 @@ struct PetLibraryTests {
 
         #expect(second.folderURL == nil)
         #expect(second.isFolderMissing)
+    }
+
+    @Test("staleなbookmarkを作り直して保存し直す")
+    func refreshesStaleBookmark() throws {
+        let folder = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("lib-\(UUID().uuidString)", isDirectory: true)
+        let package = folder.appendingPathComponent("zundamon", isDirectory: true)
+        try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
+        try Data("""
+        { "id": "zundamon", "displayName": "Zundamon",
+          "description": "d", "spritesheetPath": "spritesheet.webp" }
+        """.utf8).write(to: package.appendingPathComponent("pet.json"))
+
+        let defaults = makeDefaults()
+        let bookmarks = FakeBookmarks()
+
+        let first = PetLibrary(defaults: defaults, bookmarks: bookmarks)
+        first.setFolder(folder)
+        let original = try #require(defaults.data(forKey: "petFolderBookmark"))
+
+        bookmarks.isStale = true
+        let second = PetLibrary(defaults: defaults, bookmarks: bookmarks)
+        second.restore()
+
+        let refreshed = try #require(defaults.data(forKey: "petFolderBookmark"))
+        #expect(refreshed != original, "staleなbookmarkが作り直されていない")
+        #expect(second.folderURL == folder)
+        #expect(second.isFolderMissing == false)
+        #expect(second.pets.isEmpty == false)
     }
 }
