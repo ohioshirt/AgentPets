@@ -18,13 +18,17 @@ struct PetAnimatorTests {
         frameIndices: [10, 11], durations: [0.05, 0.05], repeats: false
     )
 
-    @Test("再生を始めると先頭フレームから出す")
-    func startsAtFirstFrame() {
+    @Test("同じクリップを再生し直すと先頭に戻る")
+    func restartsOnSameClip() async throws {
         let animator = PetAnimator()
+        animator.play(looping)
+        try await Task.sleep(for: .milliseconds(120))
+        #expect(animator.slot != 0, "先に進んでいないと、やり直しを確かめられない")
 
         animator.play(looping)
 
         #expect(animator.slot == 0)
+        #expect(animator.frameIndex == looping.frameIndices.first)
     }
 
     @Test("クリップを差し替えると先頭に戻る")
