@@ -11,9 +11,48 @@ struct AgentPetsApp: App {
 
     var body: some Scene {
         MenuBarExtra("Pet", systemImage: "pawprint.fill") {
-            Button("Quit") {
-                NSApplication.shared.terminate(nil)
+            let library = appDelegate.library
+
+            if library.pets.isEmpty {
+                Text(library.isFolderMissing ? "ペットフォルダが見つかりません" : "ペットが未設定です")
+            } else {
+                ForEach(library.pets) { pet in
+                    Button {
+                        library.select(pet)
+                    } label: {
+                        Text(library.selection?.id == pet.id ? "✓ \(pet.displayName)" : pet.displayName)
+                    }
+                }
+                Divider()
+                Button("絵文字で表示") { library.select(nil) }
             }
+
+            Divider()
+            Button(library.folderURL == nil ? "ペットフォルダを選択…" : "ペットフォルダを変更…") {
+                chooseFolder(for: library)
+            }
+
+            Divider()
+            Button("Quit") { NSApplication.shared.terminate(nil) }
+        }
+    }
+
+    /// メニュートラッキング中に直接モーダルを出すと、パネルが裏に回ることがある。
+    /// アクティブ化してから次の RunLoop に回す。
+    private func chooseFolder(for library: PetLibrary) {
+        DispatchQueue.main.async {
+            NSApp.activate()
+
+            let panel = NSOpenPanel()
+            panel.canChooseDirectories = true
+            panel.canChooseFiles = false
+            panel.allowsMultipleSelection = false
+            panel.showsHiddenFiles = true
+            panel.prompt = "選択"
+            panel.message = "ペットパッケージが入っているフォルダを選んでください。"
+
+            guard panel.runModal() == .OK, let url = panel.url else { return }
+            library.setFolder(url)
         }
     }
 }
