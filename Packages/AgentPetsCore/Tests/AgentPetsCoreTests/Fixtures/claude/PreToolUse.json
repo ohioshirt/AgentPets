@@ -1,0 +1,18 @@
+{
+  "cwd": "/Users/user/projects/demo-project",
+  "effort": {
+    "level": "<redacted>"
+  },
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "default",
+  "prompt_id": "f26a206d-8840-4ffc-b03b-e2cb02eac82d",
+  "scratchpad_dir": "/Users/user/projects/demo-project",
+  "session_id": "14524484-d3fd-4ed6-beb1-f7b084cd51b5",
+  "tool_input": {
+    "command": "<redacted>",
+    "description": "<redacted>"
+  },
+  "tool_name": "Bash",
+  "tool_use_id": "toolu_01EJzug4jRjVRJYF4KED92aU",
+  "transcript_path": "/Users/user/projects/demo-project"
+}

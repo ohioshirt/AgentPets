@@ -1,0 +1,9 @@
+{
+  "cwd": "/Users/user/projects/demo-project",
+  "hook_event_name": "SessionEnd",
+  "prompt_id": "b95ef879-301a-4faf-96fa-f398e4b78757",
+  "reason": "prompt_input_exit",
+  "scratchpad_dir": "/Users/user/projects/demo-project",
+  "session_id": "14524484-d3fd-4ed6-beb1-f7b084cd51b5",
+  "transcript_path": "/Users/user/projects/demo-project"
+}

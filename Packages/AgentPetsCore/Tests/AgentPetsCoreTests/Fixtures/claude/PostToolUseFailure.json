@@ -1,0 +1,21 @@
+{
+  "cwd": "/Users/user/projects/demo-project",
+  "duration_ms": 24,
+  "effort": {
+    "level": "<redacted>"
+  },
+  "error": "<redacted>",
+  "hook_event_name": "PostToolUseFailure",
+  "is_interrupt": false,
+  "permission_mode": "auto",
+  "prompt_id": "bcd5d74d-001b-4045-ac31-5c2fc775c49d",
+  "scratchpad_dir": "/Users/user/projects/demo-project",
+  "session_id": "14524484-d3fd-4ed6-beb1-f7b084cd51b5",
+  "tool_input": {
+    "command": "<redacted>",
+    "description": "<redacted>"
+  },
+  "tool_name": "Bash",
+  "tool_use_id": "toolu_01AV6dy6kHT3R4WM6K134CmD",
+  "transcript_path": "/Users/user/projects/demo-project"
+}

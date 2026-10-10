@@ -1,0 +1,9 @@
+{
+  "cwd": "/Users/user/projects/demo-project",
+  "hook_event_name": "SessionStart",
+  "model": "claude-opus-5-5",
+  "scratchpad_dir": "/Users/user/projects/demo-project",
+  "session_id": "14524484-d3fd-4ed6-beb1-f7b084cd51b5",
+  "source": "startup",
+  "transcript_path": "/Users/user/projects/demo-project"
+}

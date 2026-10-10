@@ -1,0 +1,14 @@
+{
+  "cwd": "/Users/user/projects/demo-project",
+  "hook_event_name": "PreToolUse",
+  "model": "gpt-6-luna",
+  "permission_mode": "default",
+  "session_id": "01a123bc-f4a6-7340-bb2e-9fffb8b00a64",
+  "tool_input": {
+    "command": "<redacted>"
+  },
+  "tool_name": "Bash",
+  "tool_use_id": "exec-673c26d7-7192-41e3-90db-499402b6452a",
+  "transcript_path": "/Users/user/projects/demo-project",
+  "turn_id": "01a123c8-666c-7851-8c26-a9746840f02d"
+}

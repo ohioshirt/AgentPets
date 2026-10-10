@@ -1,0 +1,34 @@
+{
+  "cwd": "/Users/user/projects/demo-project",
+  "effort": {
+    "level": "<redacted>"
+  },
+  "hook_event_name": "PermissionRequest",
+  "permission_mode": "default",
+  "permission_suggestions": [
+    {
+      "behavior": "<redacted>",
+      "destination": "<redacted>",
+      "rules": [
+        {
+          "ruleContent": "<redacted>",
+          "toolName": "<redacted>"
+        },
+        {
+          "ruleContent": "<redacted>",
+          "toolName": "<redacted>"
+        }
+      ],
+      "type": "<redacted>"
+    }
+  ],
+  "prompt_id": "f26a206d-8840-4ffc-b03b-e2cb02eac82d",
+  "scratchpad_dir": "/Users/user/projects/demo-project",
+  "session_id": "14524484-d3fd-4ed6-beb1-f7b084cd51b5",
+  "tool_input": {
+    "command": "<redacted>",
+    "description": "<redacted>"
+  },
+  "tool_name": "Bash",
+  "transcript_path": "/Users/user/projects/demo-project"
+}

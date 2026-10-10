@@ -1,0 +1,10 @@
+{
+  "cwd": "/Users/user/projects/demo-project",
+  "hook_event_name": "Notification",
+  "message": "<redacted>",
+  "notification_type": "idle_prompt",
+  "prompt_id": "c42a0a18-ee92-42a7-8782-c27eabf0f018",
+  "scratchpad_dir": "/Users/user/projects/demo-project",
+  "session_id": "14524484-d3fd-4ed6-beb1-f7b084cd51b5",
+  "transcript_path": "/Users/user/projects/demo-project"
+}

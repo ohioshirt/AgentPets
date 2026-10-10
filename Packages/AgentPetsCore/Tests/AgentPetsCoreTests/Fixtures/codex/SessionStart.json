@@ -1,0 +1,9 @@
+{
+  "cwd": "/Users/user/projects/demo-project",
+  "hook_event_name": "SessionStart",
+  "model": "gpt-6-luna",
+  "permission_mode": "default",
+  "session_id": "01a123bc-f4a6-7340-bb2e-9fffb8b00a64",
+  "source": "startup",
+  "transcript_path": "/Users/user/projects/demo-project"
+}

@@ -1,0 +1,7 @@
+{
+  "cwd": "/Users/user/projects/demo-project",
+  "hook_event_name": "SessionEnd",
+  "reason": "other",
+  "session_id": "01a123bc-f4a6-7340-bb2e-9fffb8b00a64",
+  "transcript_path": "/Users/user/projects/demo-project"
+}

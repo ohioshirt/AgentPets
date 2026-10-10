@@ -1,0 +1,9 @@
+{
+  "cwd": "/Users/user/projects/demo-project",
+  "hook_event_name": "Interrupt",
+  "model": "gpt-6-luna",
+  "permission_mode": "default",
+  "session_id": "01a123bc-f4a6-7340-bb2e-9fffb8b00a64",
+  "transcript_path": "/Users/user/projects/demo-project",
+  "turn_id": "01a123c9-70c0-7693-a7e2-b4cb7f26ff9f"
+}
