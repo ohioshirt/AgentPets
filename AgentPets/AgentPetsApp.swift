@@ -68,6 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let library = PetLibrary()
     private(set) var windowController: FloatingWindowController?
     private var listener: StatusNotificationListener?
+    private var hub: HubStore?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         library.restore()
@@ -78,7 +79,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.showWindow(nil)
         windowController = controller
 
-        let listener = StatusNotificationListener(viewModel: viewModel)
+        let hub = HubStore(sink: viewModel)
+        hub.start()
+        self.hub = hub
+
+        let listener = StatusNotificationListener { [weak hub] event in hub?.receive(event) }
         listener.start()
         self.listener = listener
     }

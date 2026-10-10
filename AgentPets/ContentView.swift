@@ -21,12 +21,12 @@ struct ContentView: View {
             case .sprite:
                 if let sheet = library.sheet,
                    let pet = library.selection,
-                   PetAnimation.clip(for: viewModel.currentState,
+                   PetAnimation.clip(for: viewModel.spriteState,
                                      manifest: pet.manifest, sheet: sheet) != nil {
                     PetSpriteView(
                         sheet: sheet,
                         manifest: pet.manifest,
-                        state: viewModel.currentState,
+                        state: viewModel.spriteState,
                         eventID: viewModel.eventID
                     )
                 } else {

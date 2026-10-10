@@ -5,44 +5,42 @@
 //  Created by shigeo on 2026/08/15.
 //
 
+import AgentPetsCore
 import Foundation
 import Observation
 
 @MainActor
 @Observable
-final class PetViewModel {
+final class PetViewModel: DisplaySink {
+    /// 絵文字表示と色に使う、集約結果そのものの状態。
     var currentState: PetState = .idle
+    /// スプライトで再生する状態。集約の切り替わりで success が表に出たときは、
+    /// 跳ねずに跳ねた後の姿（idle）を流すため currentState と分ける。
+    var spriteState: PetState = .idle
     var message: String = ""
 
-    /// 通知を受け取るたびに増える。
-    ///
-    /// エージェントのフックは同じ状態を連投する（ツール呼び出しごとに success を送るなど）。
-    /// 状態の値だけを見ていると 2 回目以降の変化を拾えず、跳ねる動きが 1 度しか出ない。
+    /// スプライトをやり直す連番。同じ状態のまま跳ね直すときにも増やす。
     private(set) var eventID = 0
 
-    private var guardTimer: Timer?
+    /// 跳ねるかどうかは HubStore が `celebrate` で決める。ここは見た目への写像だけを持つ。
+    func show(_ display: DisplayState) {
+        let sprite: PetState = display.status == .success && !display.celebrate ? .idle : PetState(display.status)
 
-    /// working のまま音沙汰が無くなったときに idle へ戻すまでの秒数
-    var workingTimeout: TimeInterval = 10
+        if display.celebrate || sprite != spriteState { eventID &+= 1 }
+        currentState = PetState(display.status)
+        spriteState = sprite
+        message = display.message
+    }
+}
 
-    func apply(_ payload: StatusPayload) {
-        currentState = payload.state
-        message = payload.message
-        eventID &+= 1
-
-        guardTimer?.invalidate()
-        guard payload.state == .working else { return }
-
-        // working のまま通知が途絶えた場合に備え、一定時間で idle へ戻す。
-        // .common モードに入れないと、メニューを開いている間だけ時間が進まない。
-        let timer = Timer(fire: Date(timeIntervalSinceNow: workingTimeout),
-                          interval: 0, repeats: false) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self, self.currentState == .working else { return }
-                self.apply(StatusPayload(state: .idle, message: ""))
-            }
+extension PetState {
+    init(_ status: PetStatus) {
+        switch status {
+        case .idle: self = .idle
+        case .working: self = .working
+        case .waiting: self = .waiting
+        case .success: self = .success
+        case .error: self = .error
         }
-        RunLoop.main.add(timer, forMode: .common)
-        guardTimer = timer
     }
 }

@@ -3,6 +3,7 @@
 //  AgentPetsTests
 //
 
+import AgentPetsCore
 import Foundation
 import Testing
 @testable import AgentPets
@@ -11,30 +12,42 @@ import Testing
 @MainActor
 struct StatusNotificationListenerTests {
 
-    @Test("購読中は配信された通知がviewModelに反映される")
-    func appliesDeliveredNotification() async throws {
-        let viewModel = PetViewModel()
-        let listener = StatusNotificationListener(viewModel: viewModel)
+    @Test("v2 の通知を AgentEvent として渡す")
+    func deliversV2() async throws {
+        var received: [AgentEvent] = []
+        let listener = StatusNotificationListener { received.append($0) }
+        listener.start()
+
+        let event = AgentEvent(source: .claude, session: "s", project: "p", kind: .turnCompleted, ts: 1)
+        post(try #require(WireCodec.encode(event)))
+
+        try await waitUntil { received.contains(event) }
+    }
+
+    @Test("旧形式の通知も manual イベントとして渡す")
+    func deliversLegacy() async throws {
+        var received: [AgentEvent] = []
+        let listener = StatusNotificationListener { received.append($0) }
         listener.start()
 
         post(#"{"status":"success","message":"完了"}"#)
 
-        try await waitUntil { viewModel.currentState == .success }
-        #expect(viewModel.message == "完了")
+        try await waitUntil { received.contains { $0.source == .manual && $0.kind == .turnCompleted && $0.detail == "完了" } }
     }
 
-    @Test("未知のstatusを載せた通知はviewModelを動かさない")
-    func ignoresUnknownState() async throws {
-        let viewModel = PetViewModel()
-        let listener = StatusNotificationListener(viewModel: viewModel)
+    @Test("不正な通知は捨てる")
+    func ignoresInvalid() async throws {
+        var received: [AgentEvent] = []
+        let listener = StatusNotificationListener { received.append($0) }
         listener.start()
 
         post(#"{"status":"pwned","message":"x"}"#)
         post(#"{"status":"waiting","message":"次の通知"}"#)
 
-        // 後から送った正常な通知が届いた時点で、不正な方は捨てられたと判断できる
-        try await waitUntil { viewModel.currentState == .waiting }
-        #expect(viewModel.message == "次の通知")
+        // 後から送った正常な通知が届いた時点で、不正な方は捨てられたと判断できる。
+        // 実 hook が同じ通知名で送ってくることがあるので、件数ではなく中身で判定する。
+        try await waitUntil { received.contains { $0.detail == "次の通知" } }
+        #expect(!received.contains { $0.detail == "x" })
     }
 
     private func post(_ payload: String) {
