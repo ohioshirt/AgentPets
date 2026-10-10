@@ -69,6 +69,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) var windowController: FloatingWindowController?
     private var listener: StatusNotificationListener?
     private var hub: HubStore?
+    /// トグルに関係なく常設し、最新の表示状態と跳ねる番号を持ち続ける（spec §2.2）。
+    private let stackChanSink = StackChanSink()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         library.restore()
@@ -79,7 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.showWindow(nil)
         windowController = controller
 
-        let hub = HubStore(sink: viewModel)
+        let hub = HubStore(sink: FanOutSink([viewModel, stackChanSink]))
         hub.start()
         self.hub = hub
 
