@@ -8,7 +8,7 @@
 
 **Tech Stack:** Swift 6（Apple Swift 6.4 / Xcode 27.1 で確認）、SwiftPM、swift-testing、SwiftUI `MenuBarExtra`、CoreBluetooth、AppKit（`NSWorkspace`）、`os.Logger`。
 
-**Spec:** `docs/superpowers/specs/2026-10-10-stackchan-ble-design.md`（commit 1f780c5）の §1（wire contract）と §2（Mac 側）。§3（ファームウェア）は別の計画で扱う。各タスクの実装者は spec の §1・§2 を読むこと。
+**Spec:** `docs/superpowers/specs/2026-10-10-stackchan-ble-design.md`（commit 3470945）の §1（wire contract）と §2（Mac 側）。§3（ファームウェア）は別の計画で扱う。各タスクの実装者は spec の §1・§2 を読むこと。
 
 ## Global Constraints
 

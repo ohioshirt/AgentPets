@@ -8,7 +8,7 @@
 
 **Tech Stack:** Swift 6（Apple Swift 6.4 toolchain で確認済み）、SwiftPM、swift-testing、SwiftUI、macOS 26、`DistributedNotificationCenter`。
 
-**Spec:** `docs/superpowers/specs/2026-10-10-agent-event-hub-design.md`（commit 8b4b1b9）。各タスクの実装者は spec も読むこと。
+**Spec:** `docs/superpowers/specs/2026-10-10-agent-event-hub-design.md`（commit 4f5d8a1）。各タスクの実装者は spec も読むこと。
 
 ## Global Constraints
 

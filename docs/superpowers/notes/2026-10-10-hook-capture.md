@@ -107,8 +107,8 @@ jitter 0.0ms  (x5)
 
 ### 実機確認で見つかり、直した問題
 
-1. 吹き出しの切り詰め。96×104 のウィンドウで `.lineLimit(2)` が `claude · demo-project: 入力待ち (Bash)` を `claude · demo-proj…` に切り、状態が見えなかった。吹き出しを `<状態語>[ (<詳細>)] · <project|source>` の状態先頭形式にし、全文はホバーで出すようにした（コミット ade388c、仕様 §2.3 の更新は 78a9e16、ホバー表示は 3bf3a63）。`.help` のツールチップは、非アクティブな non-activating パネルでは出なかったため、ホバーで広がる吹き出しで代えた。
-2. テストによる本番通知名の汚染。`AgentPetsTests/StatusNotificationListenerTests` が本番の通知名 `com.agentpets.status` へ実際に通知を送っており（`{"status":"waiting","message":"次の通知"}` を含む）、`xcodebuild test` のたびに、動作中のペットへ 10 分間の manual waiting「次の通知」が入り、実セッションを隠していた。リスナーの通知名を差し替え可能にし、テストは一意なテスト用の名前を使うようにした（コミット 322cb77）。修正後に `xcodebuild test` を全件走らせ、外部の記録プロセスで本番名への通知が 0 件であることを確認した。
+1. 吹き出しの切り詰め。96×104 のウィンドウで `.lineLimit(2)` が `claude · demo-project: 入力待ち (Bash)` を `claude · demo-proj…` に切り、状態が見えなかった。吹き出しを `<状態語>[ (<詳細>)] · <project|source>` の状態先頭形式にし、全文はホバーで出すようにした（コミット 1868c4b、仕様 §2.3 の更新は 5d5fce0、ホバー表示は c37d29e）。`.help` のツールチップは、非アクティブな non-activating パネルでは出なかったため、ホバーで広がる吹き出しで代えた。
+2. テストによる本番通知名の汚染。`AgentPetsTests/StatusNotificationListenerTests` が本番の通知名 `com.agentpets.status` へ実際に通知を送っており（`{"status":"waiting","message":"次の通知"}` を含む）、`xcodebuild test` のたびに、動作中のペットへ 10 分間の manual waiting「次の通知」が入り、実セッションを隠していた。リスナーの通知名を差し替え可能にし、テストは一意なテスト用の名前を使うようにした（コミット 06e102c）。修正後に `xcodebuild test` を全件走らせ、外部の記録プロセスで本番名への通知が 0 件であることを確認した。
 
 未証明の点として、ライブ確認の最初の旧形式テストでは表示が変わらなかった。後では再現しなかった。直前のテスト実行が manual waiting を送っていたことによる、上の 2 と同じ汚染が原因とみているが、証明はしていない。
 
