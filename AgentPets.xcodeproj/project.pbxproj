@@ -6,6 +6,11 @@
 	objectVersion = 90;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		8DBDA2303079EED9000C1184 /* AgentPetsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8DBDA22F3079EED9000C1184 /* AgentPetsCore */; };
+		8DBDA2333079EFD1000C1184 /* AgentPetsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8DBDA2323079EFD1000C1184 /* AgentPetsCore */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		000000000000000000000201 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -38,11 +43,13 @@
 		000000000000000130000000 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				8DBDA2303079EED9000C1184 /* AgentPetsCore in Frameworks */,
 			);
 		};
 		000000000000000230000000 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				8DBDA2333079EFD1000C1184 /* AgentPetsCore in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -53,6 +60,7 @@
 			children = (
 				000000000000000000000010 /* AgentPets */,
 				000000000000000000000011 /* AgentPetsTests */,
+				8DBDA2313079EFD1000C1184 /* Frameworks */,
 				000000000000000000000020 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -64,6 +72,13 @@
 				000000000000000000000121 /* AgentPetsTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		8DBDA2313079EFD1000C1184 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -83,6 +98,9 @@
 				000000000000000000000010 /* AgentPets */,
 			);
 			name = AgentPets;
+			packageProductDependencies = (
+				8DBDA22F3079EED9000C1184 /* AgentPetsCore */,
+			);
 			productName = AgentPets;
 			productReference = 000000000000000000000120 /* AgentPets.app */;
 			productType = "com.apple.product-type.application";
@@ -104,6 +122,9 @@
 				000000000000000000000011 /* AgentPetsTests */,
 			);
 			name = AgentPetsTests;
+			packageProductDependencies = (
+				8DBDA2323079EFD1000C1184 /* AgentPetsCore */,
+			);
 			productName = AgentPetsTests;
 			productReference = 000000000000000000000121 /* AgentPetsTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -136,6 +157,9 @@
 			);
 			mainGroup = 000000000000000000000001;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				8DBDA22E3079EED9000C1184 /* XCLocalSwiftPackageReference "Packages/AgentPetsCore" */,
+			);
 			preferredProjectObjectVersion = 90;
 			productRefGroup = 000000000000000000000020 /* Products */;
 			projectDirPath = "";
@@ -464,6 +488,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		8DBDA22E3079EED9000C1184 /* XCLocalSwiftPackageReference "Packages/AgentPetsCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/AgentPetsCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		8DBDA22F3079EED9000C1184 /* AgentPetsCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AgentPetsCore;
+		};
+		8DBDA2323079EFD1000C1184 /* AgentPetsCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8DBDA22E3079EED9000C1184 /* XCLocalSwiftPackageReference "Packages/AgentPetsCore" */;
+			productName = AgentPetsCore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 000000000000000000000000 /* Project object */;
 }
