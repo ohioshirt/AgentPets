@@ -91,3 +91,42 @@ jitter 0.0ms  (x5)
 - `jitter`: 2 本の CLI を同時起動した Debug ビルドの、`main` 入口での ts 差（検査スクリプトの 5 組、最大 0.0 ms）。
   dyld・プロセス spawn・stdin 読み込みを含まないため、実際の hook 起動の jitter を上限評価するものではない。
 - 1.0 秒の猶予の判断は、上の「起動の揺れ」節（Task 1、hook 起動の jitter 最大 81.3 ms）に基づく。
+
+## 結合確認（Task 8）
+
+2026-10-10 に、実機で hook からアプリまでを通して確認した。`scripts/install-hook.sh` で `~/.local/bin/agentpets-hook`（release ビルド）を置き、アプリは Debug ビルドを Xcode から起動した。
+
+### Step 2: サンドボックス内のアプリへの配送
+
+採取済み fixture を `~/.local/bin/agentpets-hook` で再送した。
+
+- `PermissionRequest` は吹き出し `入力待ち (Bash) · demo-project` になり、ホバーすると `claude · demo-project: 入力待ち (Bash)` に広がった。
+- 同じセッションの `Stop` は `完了 · demo-project` になった。跳ねる動きは再送した `Stop` で確認した（最初の 1 回はユーザーが見逃した）。
+- 旧形式の `agentpets-notify.sh working "テスト実行中"` は吹き出し `テスト実行中` になり、10〜15 秒後に `完了 · demo-project` へ戻った。
+- 別プロセスからサンドボックス内のアプリへの配送は、v2 と旧形式のどちらも動いた。診断用の一時ビルドで、どちらも recv → decode → HubStore → show のログを確認した。
+
+### 実機確認で見つかり、直した問題
+
+1. 吹き出しの切り詰め。96×104 のウィンドウで `.lineLimit(2)` が `claude · demo-project: 入力待ち (Bash)` を `claude · demo-proj…` に切り、状態が見えなかった。吹き出しを `<状態語>[ (<詳細>)] · <project|source>` の状態先頭形式にし、全文はホバーで出すようにした（コミット ade388c、仕様 §2.3 の更新は 78a9e16、ホバー表示は 3bf3a63）。`.help` のツールチップは、非アクティブな non-activating パネルでは出なかったため、ホバーで広がる吹き出しで代えた。
+2. テストによる本番通知名の汚染。`AgentPetsTests/StatusNotificationListenerTests` が本番の通知名 `com.agentpets.status` へ実際に通知を送っており（`{"status":"waiting","message":"次の通知"}` を含む）、`xcodebuild test` のたびに、動作中のペットへ 10 分間の manual waiting「次の通知」が入り、実セッションを隠していた。リスナーの通知名を差し替え可能にし、テストは一意なテスト用の名前を使うようにした（コミット 322cb77）。修正後に `xcodebuild test` を全件走らせ、外部の記録プロセスで本番名への通知が 0 件であることを確認した。
+
+未証明の点として、ライブ確認の最初の旧形式テストでは表示が変わらなかった。後では再現しなかった。直前のテスト実行が manual waiting を送っていたことによる、上の 2 と同じ汚染が原因とみているが、証明はしていない。
+
+### Step 3: 設定の切り替え
+
+- `~/.claude/settings.json`: `agentpets-notify.sh` の 2 件（`SessionStart` の working、`Notification` の `idle_prompt` の waiting）を外した。`agentpets-hook --source claude` を `SessionStart` `UserPromptSubmit` `PreToolUse` `PostToolUse` `PostToolUseFailure` `PermissionRequest` `Notification` `Stop` `StopFailure`（async）と、`SessionEnd`（同期、timeout 2）に追加した。
+- `~/.codex/hooks.json`: `agentpets-hook --source codex`（async）を `SessionStart` `SessionEnd` `UserPromptSubmit` `PreToolUse` `PostToolUse` `PermissionRequest` `Stop` `Interrupt` に追加した。
+- 変更前の写しは `~/agentpets-capture/backup-task8/` に置いた。JSON として読めることを確認し、Pixoo・herdr・各ゲートの行には触れていない。
+
+### Step 4: 実エージェントでの確認
+
+ユーザーがペットを見て確認し、イベント列は外部の記録プロセスで採った。結果はすべて想定どおり。
+
+- C1（Claude の通常ターン）: `turn.started` → `activity`（pre, Bash）→ `input.requested`（Bash、+53 ms）→ `activity`（post, Bash、+7.3 s）→ `turn.completed`。表示は 作業中 → 入力待ち → 作業中 → 完了（跳ねる）。
+- C2（Claude で Esc により拒否）: `入力待ち (Bash)` が残る。既知の制限で、30 分の TTL で消える。
+- C3（Claude の生成中に中断）: 次のプロンプトで 作業中 に切り替わり、そのまま残る。既知の制限。
+- X1（Codex、Ask for approval。`/tmp` への書き込みは承認不要だった）: 作業中 → 完了。
+- X3（Codex の中断）: `turn.started` → `turn.interrupted`（+2.2 s）。そのセッションは idle になり、表示は別セッション（この作業を回している Claude セッション）の 完了 に移った。
+- Claude と Codex の同時実行: 許可待ち（入力待ち）が、もう一方が作業中でも最上位に残った。
+
+Codex のセッション ID は UUIDv7 で、別セッションでも先頭 8 桁が同じになる。hub は完全な ID をキーにしているので問題は無い。
