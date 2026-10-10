@@ -76,3 +76,18 @@ Claude は `hooks` がバックアップと一致（hooks 以外の差は採取�
 claude はすべてセッション `14524484`、`PermissionRequest.json` と `Stop.json` は C1 の同じターン（`1791594207.449` / `1791594214.370`）。
 codex はすべてセッション `01a123bc`。
 `StopFailure` は採取できなかった（意図的に起こせない）ので fixture は無い。
+
+## agentpets-hook CLI の実測（Task 6）
+
+`scripts/test-hook-cli.sh` の最終実行（ALL OK）の生出力より:
+
+```
+time SessionEnd.json 0.012s
+time huge 0.025s
+jitter 0.0ms  (x5)
+```
+
+- `time` 最大: 0.025 s（5MB の tool_response を含む入力。上限 0.5 s に対して余裕あり）
+- `jitter` 最大: 0.0 ms（検査スクリプトの 5 組）。追加で 20 組を採取した最大は 0.406 ms
+- この jitter は 2 本の CLI を同時起動したときの ts 差であり、上の hook 起動の jitter とは別物。
+  ts は `main` 入口で採っているため、dyld など main 以前の起動時間は含まない
