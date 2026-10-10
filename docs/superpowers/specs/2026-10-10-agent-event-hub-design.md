@@ -163,7 +163,8 @@ Codex: https://learn.chatgpt.com/docs/hooks.md 、2026-10-10 取得）。docs �
 
 - 全セッションから優先度 waiting > error > working > success > idle の最上位を 1 つ選ぶ。同順位は最終イベントが新しい方。
 - セッション 0 件なら idle。
-- 吹き出し文: `<source> · <project>: <状態の短文>[ (<detail>)]`（`project` が空なら `<source>: …`）。表示セッションが idle なら空文字。manual は `detail`（旧形式の `message`）だけを出す。`MessageText.sanitize`（旧 `StatusPayload.sanitize` から移設）の制御文字除去・120 文字切り詰めを通す。
+- 吹き出し文: `<状態の短文>[ (<detail>)] · <project>`（`project` が空なら `… · <source>`）。狭い吹き出しで末尾が切れても状態語が読めるよう、状態を先頭に置く。表示セッションが idle なら空文字。manual は `detail`（旧形式の `message`）だけを出す。
+- ツールチップ（`DisplayState.tooltip`）: 吹き出しにホバーしたときの全文 `<source> · <project>: <状態の短文>[ (<detail>)]`（`project` が空なら `<source>: …`）。manual は吹き出しと同じ、idle は空文字。`sameView` は tooltip も比べる（message が同じでも source が違えば tooltip が変わるため）。`MessageText.sanitize`（旧 `StatusPayload.sanitize` から移設）の制御文字除去・120 文字切り詰めを、吹き出し文・ツールチップの両方に通す。
 - 跳ねる動き（`DisplayState.celebrate`）は集約ではなく `HubStore.receive` が決める。受信したイベントが `turn.completed` で、
   集約結果の表示セッションがそのセッションで、かつ受信前後でセッション表が変化したときだけ立てる。
   猶予・順序保護で捨てられたイベントは表を変えないので跳ねない。`Stop` から始まるセッション（直前に状態が無い）も跳ねる。
