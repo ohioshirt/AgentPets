@@ -87,7 +87,7 @@ time huge 0.025s
 jitter 0.0ms  (x5)
 ```
 
-- `time` 最大: 0.025 s（5MB の tool_response を含む入力。上限 0.5 s に対して余裕あり）
-- `jitter` 最大: 0.0 ms（検査スクリプトの 5 組）。追加で 20 組を採取した最大は 0.406 ms
-- この jitter は 2 本の CLI を同時起動したときの ts 差であり、上の hook 起動の jitter とは別物。
-  ts は `main` 入口で採っているため、dyld など main 以前の起動時間は含まない
+- `time`: 0.012 s と 0.025 s。sh / perl の wrapper を含む上限値。Debug ビルドで採取した。上限 0.5 s に対して余裕がある。
+- `jitter`: 2 本の CLI を同時起動した Debug ビルドの、`main` 入口での ts 差（検査スクリプトの 5 組、最大 0.0 ms）。
+  dyld・プロセス spawn・stdin 読み込みを含まないため、実際の hook 起動の jitter を上限評価するものではない。
+- 1.0 秒の猶予の判断は、上の「起動の揺れ」節（Task 1、hook 起動の jitter 最大 81.3 ms）に基づく。
