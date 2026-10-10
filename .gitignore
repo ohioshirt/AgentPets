@@ -12,3 +12,6 @@ DerivedData/
 
 # Claude Code local workspace
 .claude/
+
+# Hardware check evidence (videos, photos)
+/evidence/
