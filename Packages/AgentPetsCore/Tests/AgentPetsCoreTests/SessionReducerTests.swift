@@ -63,6 +63,20 @@ struct SessionReducerApplyTests {
         #expect(status(SessionReducer.expire(t, now: 900 + 30 * 60)) == .idle)
     }
 
+    @Test("時計の巻き戻し後は success からの activity も猶予で捨てず、適用して TTL を新しい時刻で効かせる")
+    func clockJumpActivityFromSuccess() {
+        let t = run([ev(.turnCompleted, 1000), ev(.activity, 900, detail: "Bash", phase: .post)])
+        #expect(status(t) == .working)
+        #expect(status(SessionReducer.expire(t, now: 900 + 30 * 60)) == .idle)
+    }
+
+    @Test("時計の巻き戻し後は waiting の一致する post activity も猶予で捨てず、適用して TTL を新しい時刻で効かせる")
+    func clockJumpActivityFromWaiting() {
+        let t = run([ev(.inputRequested, 1000, detail: "Bash"), ev(.activity, 900, detail: "Bash", phase: .post)])
+        #expect(status(t) == .working)
+        #expect(status(SessionReducer.expire(t, now: 900 + 30 * 60)) == .idle)
+    }
+
     @Test("waiting と error は turn.started で working に戻る", arguments: [EventKind.inputRequested, .turnFailed])
     func turnStartedExits(kind: EventKind) {
         #expect(status(run([ev(kind, 10, detail: "Bash"), ev(.turnStarted, 11)])) == .working)

@@ -60,9 +60,11 @@ public enum SessionReducer {
         var state = existing ?? SessionState(key: key, project: event.project, status: .idle, detail: "",
                                              lastAppliedTS: event.ts, enteredTS: event.ts, completionCount: 0)
 
+        var isClockJump = false
         if let existing {
             let lag = existing.lastAppliedTS - event.ts
             if lag > 0 && lag <= config.clockJumpTolerance { return table }
+            isClockJump = lag > config.clockJumpTolerance
         }
         if !event.project.isEmpty { state.project = event.project }
 
@@ -81,7 +83,7 @@ public enum SessionReducer {
         case .turnStarted:
             enter(.working, detail: event.detail)
         case .activity:
-            guard shouldAccept(activity: event, in: state, config: config) else { return table }
+            guard shouldAccept(activity: event, in: state, isClockJump: isClockJump, config: config) else { return table }
             enter(.working, detail: event.detail)
         case .inputRequested:
             if state.status == .waiting && event.detail.isEmpty {
@@ -108,7 +110,9 @@ public enum SessionReducer {
     }
 
     private static func shouldAccept(activity event: AgentEvent, in state: SessionState,
-                                     config: ReducerConfig) -> Bool {
+                                     isClockJump: Bool, config: ReducerConfig) -> Bool {
+        // 時計の巻き戻し後は enteredTS が未来の時刻になり猶予の比較が崩れるため、猶予を見ずに適用する。
+        if isClockJump { return true }
         switch state.status {
         case .idle, .working:
             return true
