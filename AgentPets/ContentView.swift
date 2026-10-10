@@ -14,7 +14,7 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 8) {
             if PetDisplay.showsBubble(message: viewModel.message) {
-                SpeechBubble(message: viewModel.message)
+                SpeechBubble(message: viewModel.message, tooltip: viewModel.tooltip)
             }
 
             switch PetDisplay.mode(sheet: library.sheet) {

@@ -3,24 +3,28 @@ import Foundation
 /// 画面と（第 2 期の）BLE に出す 1 つの状態。
 public struct DisplayState: Equatable, Sendable {
     public var status: PetStatus
+    /// 吹き出しの文。狭い吹き出しでも状態語が切れないよう、状態を先頭に置く。
     public var message: String
+    /// ホバー時に出す全文（`<source> · <project>: <状態>[ (<detail>)]`）。吹き出しが空なら空。
+    public var tooltip: String
     public var sessionKey: SessionKey?
     /// 表示中セッションが今まさに turn.completed を受けた。跳ねる合図。
     /// 集約は立てない。HubStore.receive が、適用したイベントと表示中セッションが一致したときだけ立てる。
     public var celebrate: Bool
 
-    public static let empty = DisplayState(status: .idle, message: "", sessionKey: nil, celebrate: false)
+    public static let empty = DisplayState(status: .idle, message: "", tooltip: "", sessionKey: nil, celebrate: false)
 
-    public init(status: PetStatus, message: String, sessionKey: SessionKey?, celebrate: Bool = false) {
+    public init(status: PetStatus, message: String, tooltip: String = "", sessionKey: SessionKey?, celebrate: Bool = false) {
         self.status = status
         self.message = message
+        self.tooltip = tooltip
         self.sessionKey = sessionKey
         self.celebrate = celebrate
     }
 
     /// celebrate を除いて同じ見た目か。HubStore の重複排除に使う。
     public func sameView(as other: DisplayState) -> Bool {
-        status == other.status && message == other.message && sessionKey == other.sessionKey
+        status == other.status && message == other.message && tooltip == other.tooltip && sessionKey == other.sessionKey
     }
 }
 
@@ -53,16 +57,26 @@ public enum Aggregator {
             (a.status.priority, a.lastAppliedTS) < (b.status.priority, b.lastAppliedTS)
         }
         guard let top else { return .empty }
-        return DisplayState(status: top.status, message: message(for: top), sessionKey: top.key)
+        let (message, tooltip) = texts(for: top)
+        return DisplayState(status: top.status, message: message, tooltip: tooltip, sessionKey: top.key)
     }
 
-    private static func message(for state: SessionState) -> String {
-        if state.key.source == .manual { return MessageText.sanitize(state.detail) }
-        guard state.status != .idle else { return "" }
-        let head = state.project.isEmpty
-            ? state.key.source.rawValue
-            : "\(state.key.source.rawValue) · \(state.project)"
-        let tail = state.detail.isEmpty ? "" : " (\(state.detail))"
-        return MessageText.sanitize("\(head): \(state.status.phrase)\(tail)")
+    /// 吹き出しの文とツールチップ。吹き出しは `<状態>[ (<detail>)] · <project|source>`、
+    /// ツールチップは `<source> · <project>: <状態>[ (<detail>)]`（project が空なら `<source>: …`）。
+    private static func texts(for state: SessionState) -> (message: String, tooltip: String) {
+        if state.key.source == .manual {
+            let text = MessageText.sanitize(state.detail)
+            return (text, text)
+        }
+        guard state.status != .idle else { return ("", "") }
+        let source = state.key.source.rawValue
+        let body = state.detail.isEmpty
+            ? state.status.phrase
+            : "\(state.status.phrase) (\(state.detail))"
+        let bubble = "\(body) · \(state.project.isEmpty ? source : state.project)"
+        let full = state.project.isEmpty
+            ? "\(source): \(body)"
+            : "\(source) · \(state.project): \(body)"
+        return (MessageText.sanitize(bubble), MessageText.sanitize(full))
     }
 }

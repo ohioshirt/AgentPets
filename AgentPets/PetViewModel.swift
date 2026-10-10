@@ -18,6 +18,8 @@ final class PetViewModel: DisplaySink {
     /// 跳ねずに跳ねた後の姿（idle）を流すため currentState と分ける。
     var spriteState: PetState = .idle
     var message: String = ""
+    /// 吹き出しのホバーに出す全文。
+    var tooltip: String = ""
 
     /// スプライトをやり直す連番。同じ状態のまま跳ね直すときにも増やす。
     private(set) var eventID = 0
@@ -30,6 +32,7 @@ final class PetViewModel: DisplaySink {
         currentState = PetState(display.status)
         spriteState = sprite
         message = display.message
+        tooltip = display.tooltip
     }
 }
 

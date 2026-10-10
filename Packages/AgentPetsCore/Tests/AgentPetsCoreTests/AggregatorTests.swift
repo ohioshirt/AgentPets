@@ -52,24 +52,36 @@ struct AggregatorTests {
     @Test("吹き出し文は source・project・状態・detail を含む")
     func message() {
         let d = Aggregator.display(table([ev(.inputRequested, 1, session: "a", project: "uwb", detail: "Bash")]))
-        #expect(d.message == "claude · uwb: 入力待ち (Bash)")
+        #expect(d.message == "入力待ち (Bash) · uwb")
+        #expect(d.tooltip == "claude · uwb: 入力待ち (Bash)")
     }
 
     @Test("project が空なら source だけ")
     func messageWithoutProject() {
         let d = Aggregator.display(table([ev(.turnStarted, 1, session: "a", source: .codex, project: "")]))
-        #expect(d.message == "codex: 作業中")
+        #expect(d.message == "作業中 · codex")
+        #expect(d.tooltip == "codex: 作業中")
+    }
+
+    @Test("detail が無ければ括弧なし")
+    func messageWithoutDetail() {
+        let d = Aggregator.display(table([ev(.turnCompleted, 1, session: "a", project: "demo-project")]))
+        #expect(d.message == "完了 · demo-project")
+        #expect(d.tooltip == "claude · demo-project: 完了")
     }
 
     @Test("idle なら文は空")
     func idleMessage() {
         #expect(Aggregator.display(table([ev(.sessionStarted, 1, session: "a")])).message == "")
+        #expect(Aggregator.display(table([ev(.sessionStarted, 1, session: "a")])).tooltip == "")
+        #expect(DisplayState.empty.tooltip == "")
     }
 
     @Test("manual は detail をそのまま文にする")
     func manualMessage() {
         let d = Aggregator.display(table([ev(.turnStarted, 1, session: "manual", source: .manual, project: "", detail: "テスト実行中")]))
         #expect(d.message == "テスト実行中")
+        #expect(d.tooltip == "テスト実行中")
     }
 
     @Test("制御文字を含む project と detail でも 1 行に畳む（Review Focus 3）")
@@ -93,5 +105,13 @@ struct AggregatorTests {
         let y = DisplayState(status: .success, message: "m", sessionKey: k, celebrate: false)
         #expect(x.sameView(as: y))
         #expect(!x.sameView(as: DisplayState(status: .success, message: "n", sessionKey: k, celebrate: false)))
+    }
+
+    @Test("sameView は tooltip が違えば false（message が同じでも source が違う場合）")
+    func sameViewTooltip() {
+        let k = SessionKey(source: .claude, session: "a")
+        let x = DisplayState(status: .working, message: "作業中 · p", tooltip: "claude · p: 作業中", sessionKey: k)
+        let y = DisplayState(status: .working, message: "作業中 · p", tooltip: "codex · p: 作業中", sessionKey: k)
+        #expect(!x.sameView(as: y))
     }
 }

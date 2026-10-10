@@ -13,17 +13,18 @@ struct PetViewModelTests {
     let a = SessionKey(source: .claude, session: "a")
     let b = SessionKey(source: .claude, session: "b")
 
-    func display(_ status: PetStatus, _ key: SessionKey?, celebrate: Bool = false, message: String = "") -> DisplayState {
-        DisplayState(status: status, message: message, sessionKey: key, celebrate: celebrate)
+    func display(_ status: PetStatus, _ key: SessionKey?, celebrate: Bool = false, message: String = "", tooltip: String = "") -> DisplayState {
+        DisplayState(status: status, message: message, tooltip: tooltip, sessionKey: key, celebrate: celebrate)
     }
 
     @Test("表示状態と文をそのまま反映する")
     func reflects() {
         let vm = PetViewModel()
-        vm.show(display(.working, a, message: "claude · p: 作業中"))
+        vm.show(display(.working, a, message: "作業中 · p", tooltip: "claude · p: 作業中"))
         #expect(vm.currentState == .working)
         #expect(vm.spriteState == .working)
-        #expect(vm.message == "claude · p: 作業中")
+        #expect(vm.message == "作業中 · p")
+        #expect(vm.tooltip == "claude · p: 作業中")
     }
 
     @Test("celebrate 付きの success で跳ねる（spriteState が success、eventID が増える）")
