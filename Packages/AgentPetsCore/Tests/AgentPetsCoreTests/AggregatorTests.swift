@@ -126,4 +126,64 @@ struct AggregatorTests {
         let y = DisplayState(status: .working, message: "作業中 · p", tooltip: "codex · p: 作業中", sessionKey: k)
         #expect(!x.sameView(as: y))
     }
+
+    // MARK: - subtitle（StackChan の文、spec §2.1）
+
+    @Test("subtitle: hook は <detail> · <project>。状態の語は含めない")
+    func subtitleDetailAndProject() {
+        let d = Aggregator.display(table([ev(.inputRequested, 1, session: "a", project: "uwb", detail: "Bash")]))
+        #expect(d.subtitle == "Bash · uwb")
+    }
+
+    @Test("subtitle: hook で detail が空なら project だけ")
+    func subtitleProjectOnly() {
+        let d = Aggregator.display(table([ev(.turnCompleted, 1, session: "a", project: "demo-project")]))
+        #expect(d.subtitle == "demo-project")
+    }
+
+    @Test("subtitle: hook で project が空なら source")
+    func subtitleSourceFallback() {
+        let withDetail = Aggregator.display(table([ev(.activity, 1, session: "a", source: .codex, project: "", detail: "Edit")]))
+        #expect(withDetail.subtitle == "Edit · codex")
+        let bare = Aggregator.display(table([ev(.turnStarted, 1, session: "a", source: .codex, project: "")]))
+        #expect(bare.subtitle == "codex")
+    }
+
+    @Test("subtitle: hook の idle は空")
+    func subtitleHookIdle() {
+        #expect(Aggregator.display(table([ev(.sessionStarted, 1, session: "a")])).subtitle == "")
+        #expect(DisplayState.empty.subtitle == "")
+    }
+
+    @Test("subtitle: manual は送られた文そのもの")
+    func subtitleManualWorking() {
+        let d = Aggregator.display(table([ev(.turnStarted, 1, session: "manual", source: .manual, project: "", detail: "テスト実行中")]))
+        #expect(d.subtitle == "テスト実行中")
+    }
+
+    @Test("subtitle: manual の idle でも文があれば送る（Review Focus 3）")
+    func subtitleManualIdle() {
+        // 旧形式の status=idle は turn.interrupted になる（WireCodec.legacyKind）
+        let d = Aggregator.display(table([ev(.turnInterrupted, 1, session: "manual", source: .manual, project: "", detail: "休憩中")]))
+        #expect(d.status == .idle)
+        #expect(d.subtitle == "休憩中")
+    }
+
+    @Test("subtitle: 制御文字を畳み、120 文字で切り詰める")
+    func subtitleSanitized() {
+        let d = Aggregator.display(table([ev(.inputRequested, 1, session: "a", project: "a\nb",
+                                             detail: String(repeating: "x", count: 200))]))
+        #expect(!d.subtitle.contains("\n"))
+        #expect(d.subtitle.count == MessageText.limit)
+        #expect(d.subtitle.hasSuffix("…"))
+    }
+
+    @Test("sameView は subtitle が違えば false")
+    func sameViewSubtitle() {
+        let k = SessionKey(source: .claude, session: "a")
+        let x = DisplayState(status: .working, message: "作業中 · p", tooltip: "t", subtitle: "Bash · p", sessionKey: k)
+        let y = DisplayState(status: .working, message: "作業中 · p", tooltip: "t", subtitle: "Edit · p", sessionKey: k)
+        #expect(!x.sameView(as: y))
+        #expect(x.sameView(as: x))
+    }
 }
