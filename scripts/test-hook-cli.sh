@@ -3,6 +3,9 @@
 #   scripts/test-hook-cli.sh <agentpets-hook のパス>
 set -u
 bin="$1"
+# 動作中のペットに fixture を流さないよう、全呼び出しを test 専用の通知名へ向ける。
+AGENTPETS_NOTIFICATION_NAME="com.agentpets.status.test.$$"
+export AGENTPETS_NOTIFICATION_NAME
 fixtures="$(cd "$(dirname "$0")/.." && pwd)/Packages/AgentPetsCore/Tests/AgentPetsCoreTests/Fixtures"
 fail=0
 

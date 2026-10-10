@@ -39,7 +39,7 @@ Claude Code や Codex の hook、または外部プロセスから状態を送�
 
 形式は `<状態語>[ (<詳細>)] · <プロジェクト名>`（プロジェクト名が無ければ送信元名）。
 状態語は `作業中` / `入力待ち` / `完了` / `失敗`。`idle` のときは吹き出しを出さない。
-吹き出しにマウスを載せると、`claude · my-project: 入力待ち (Bash)` のように送信元を含む全文に広がる。
+マウスを乗せると吹き出しが広がり、`claude · my-project: 入力待ち (Bash)` のように送信元を含む全文を表示する（非常に長い文は下が切れることがある）。
 `agentpets-notify.sh` から送った状態は、第2引数の文字列だけを出す。
 
 ### 複数セッション
@@ -228,7 +228,12 @@ xcodebuild test -project AgentPets.xcodeproj -scheme AgentPets -destination 'pla
 swift test --package-path Packages/AgentPetsCore
 ```
 
-`agentpets-hook` の CLI は `scripts/test-hook-cli.sh` で検査する。
+`agentpets-hook` の CLI は `scripts/test-hook-cli.sh` で検査する（先に CLI をビルドする）。テスト専用の通知名へ送るため、動作中のアプリには触れない。
+
+```sh
+swift build --package-path Packages/AgentPetsCore
+scripts/test-hook-cli.sh "$(swift build --package-path Packages/AgentPetsCore --show-bin-path)/agentpets-hook"
+```
 
 ## ライセンス
 

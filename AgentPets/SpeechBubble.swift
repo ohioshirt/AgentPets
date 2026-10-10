@@ -8,7 +8,7 @@ import SwiftUI
 /// ペットの上に出す吹き出し。表示するかどうかは呼び出し側が決める。
 struct SpeechBubble: View {
     let message: String
-    /// ホバーで出す全文。空なら SwiftUI は何も表示しない（吹き出しが出るときは message と同じか全文が入る）。
+    /// ホバー時に重ねて表示する全文。空ならホバーしても通常表示のまま（`.help` のツールチップも出ない）。
     var tooltip: String = ""
 
     @State private var isHovering = false
@@ -20,6 +20,8 @@ struct SpeechBubble: View {
         // 通常表示の Text をレイアウト用に残し（ホバーで ContentView の配置が動かないように）、
         // ホバー中はその上へ全文を重ねる。ウィンドウは 96pt 幅の固定寄りなので、
         // ウィンドウ自体は広げず、下のペットに被せて表示する。
+        // 既知の制限（許容済み）: 96×104 のウィンドウ幅に制約されるため、120 文字近い長文（特に CJK）は
+        // 下端で切れることがある。ウィンドウは意図的に広げない。
         bubble(Text(message).lineLimit(2))
             .opacity(expanded ? 0 : 1)
             .overlay(alignment: .top) {

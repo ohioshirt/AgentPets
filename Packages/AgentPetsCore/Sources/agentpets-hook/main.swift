@@ -30,8 +30,13 @@ guard let event = HookNormalizer.normalize(source: source, stdin: input, now: st
     exit(0)
 }
 
+// AGENTPETS_NOTIFICATION_NAME は test 専用の上書き。scripts/test-hook-cli.sh が、
+// 動作中のペットに fixture のセッションを流さないために使う。未設定・空なら本番の通知名。
+let envName = ProcessInfo.processInfo.environment["AGENTPETS_NOTIFICATION_NAME"]
+let notificationName = (envName?.isEmpty == false) ? envName! : WireCodec.notificationName
+
 DistributedNotificationCenter.default().postNotificationName(
-    Notification.Name(WireCodec.notificationName),
+    Notification.Name(notificationName),
     object: payload,
     userInfo: nil,
     deliverImmediately: true
