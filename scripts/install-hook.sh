@@ -6,8 +6,13 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 swift build --package-path "$root/Packages/AgentPetsCore" -c release --product agentpets-hook
 bin="$(swift build --package-path "$root/Packages/AgentPetsCore" -c release --show-bin-path)/agentpets-hook"
 mkdir -p "$HOME/.local/bin"
-cp "$bin" "$HOME/.local/bin/agentpets-hook"
 dest="$HOME/.local/bin/agentpets-hook"
+# 実行中・署名済みの既存バイナリを書き換えないよう、同じディレクトリの一時ファイルに複製して mv で置き換える（新しい inode）。
+tmp="$(mktemp "$dest.XXXXXX")"
+trap 'rm -f "$tmp"' EXIT
+cp "$bin" "$tmp"
+chmod 755 "$tmp"
+mv -f "$tmp" "$dest"
 echo "installed: $dest"
 cat <<EOF
 
