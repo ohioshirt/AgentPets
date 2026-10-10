@@ -33,6 +33,11 @@ struct AgentPetsApp: App {
             }
 
             Divider()
+            let link = appDelegate.stackChanLink
+            Toggle("StackChan に送る", isOn: Binding(get: { link.isEnabled }, set: { link.setEnabled($0) }))
+            Text(link.status.label)
+
+            Divider()
             Button("サイズを既定に戻す") { appDelegate.windowController?.resetSize() }
 
             Divider()
@@ -69,6 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) var windowController: FloatingWindowController?
     private var listener: StatusNotificationListener?
     private var hub: HubStore?
+    let stackChanLink = StackChanLink()
     /// トグルに関係なく常設し、最新の表示状態と跳ねる番号を持ち続ける（spec §2.2）。
     private let stackChanSink = StackChanSink()
 
@@ -80,6 +86,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         controller.showWindow(nil)
         windowController = controller
+
+        stackChanSink.transport = stackChanLink
+        stackChanLink.start()
 
         let hub = HubStore(sink: FanOutSink([viewModel, stackChanSink]))
         hub.start()
