@@ -17,9 +17,12 @@ final class StatusNotificationListener: NSObject {
 
     static let notificationName = Notification.Name(WireCodec.notificationName)
 
+    private let name: Notification.Name
     private let onEvent: (AgentEvent) -> Void
 
-    init(onEvent: @escaping (AgentEvent) -> Void) {
+    /// `name` はテストが本番の通知名を使わずに済むようにするための差し替え口。
+    init(name: Notification.Name = StatusNotificationListener.notificationName, onEvent: @escaping (AgentEvent) -> Void) {
+        self.name = name
         self.onEvent = onEvent
         super.init()
     }
@@ -28,7 +31,7 @@ final class StatusNotificationListener: NSObject {
         DistributedNotificationCenter.default().addObserver(
             self,
             selector: #selector(handleStatusNotification(_:)),
-            name: Self.notificationName,
+            name: name,
             object: nil,
             suspensionBehavior: .deliverImmediately
         )
