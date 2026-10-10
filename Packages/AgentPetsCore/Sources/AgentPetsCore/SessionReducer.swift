@@ -61,9 +61,16 @@ public enum SessionReducer {
                                              lastAppliedTS: event.ts, enteredTS: event.ts, completionCount: 0)
 
         var isClockJump = false
+        var isLateInput = false
         if let existing {
             let lag = existing.lastAppliedTS - event.ts
-            if lag > 0 && lag <= config.clockJumpTolerance { return table }
+            if lag > 0 && lag <= config.clockJumpTolerance {
+                // Codex は PreToolUse と PermissionRequest をほぼ同時（約 0.1 ms 差）に起動し、
+                // CLI の投函順は前後する。PreToolUse が先に working にした後で届いた猶予内の
+                // input.requested は捨てずに waiting にする。それ以外の種別・状態は順序保護のまま。
+                guard event.kind == .inputRequested, existing.status == .working, lag <= config.grace else { return table }
+                isLateInput = true
+            }
             isClockJump = lag > config.clockJumpTolerance
         }
         if !event.project.isEmpty { state.project = event.project }
@@ -86,8 +93,11 @@ public enum SessionReducer {
             guard shouldAccept(activity: event, in: state, isClockJump: isClockJump, config: config) else { return table }
             enter(.working, detail: event.detail)
         case .inputRequested:
+            // 空 detail の再入（Claude の Notification(permission_prompt) は PermissionRequest の約 6 秒後に来る）で
+            // enteredTS を取り直すと、その直後の一致する PostToolUse が猶予に捕まり waiting が固着する。
+            // 起点は動かさない（lastAppliedTS は下で通常どおり更新）。
             if state.status == .waiting && event.detail.isEmpty {
-                state.enteredTS = event.ts
+                break
             } else {
                 enter(.waiting, detail: event.detail)
             }
@@ -104,7 +114,8 @@ public enum SessionReducer {
 
         // ここに来るのは ts が新しいか、時計の変化として受け入れた古いイベント。
         // 後者で max を取ると旧時刻が残り、以後のイベントが落ち続け TTL も効かなくなる。
-        state.lastAppliedTS = event.ts
+        // 遅れて届いた input.requested は lastAppliedTS を戻さない（以後の activity は最新の ts と比べる）。
+        state.lastAppliedTS = isLateInput ? max(state.lastAppliedTS, event.ts) : event.ts
         table.sessions[key] = state
         return table
     }

@@ -122,15 +122,54 @@ struct SessionReducerApplyTests {
         #expect(status(t) == .working)
     }
 
-    @Test("waiting 中に detail 空の input.requested が来ても detail を保ち、猶予の起点を取り直す")
-    func reentryKeepsDetailAndResetsGrace() {
+    @Test("waiting 中に detail 空の input.requested が来ても detail と猶予の起点を保つ")
+    func emptyReentryKeepsDetailAndGrace() {
         let t = run([ev(.inputRequested, 10, detail: "Bash"), ev(.inputRequested, 16)])
         let s = t.sessions[SessionKey(source: .claude, session: "s")]
         #expect(s?.detail == "Bash")
+        #expect(s?.enteredTS == 10)
+        #expect(s?.lastAppliedTS == 16)
+    }
+
+    @Test("Claude の permission_prompt 再入: waiting(Bash)@0 → input.requested(空)@6.0 → post(Bash)@6.6 で working")
+    func emptyReentryThenPost() {
+        let t = run([ev(.inputRequested, 0, detail: "Bash"), ev(.inputRequested, 6.0),
+                     ev(.activity, 6.6, detail: "Bash", phase: .post)])
+        #expect(status(t) == .working)
+    }
+
+    @Test("detail 付きの input.requested は新しい要求として猶予の起点を取り直す")
+    func nonEmptyReentryResetsGrace() {
+        let t = run([ev(.inputRequested, 10, detail: "Bash"), ev(.inputRequested, 16, detail: "Read")])
+        let s = t.sessions[SessionKey(source: .claude, session: "s")]
+        #expect(s?.detail == "Read")
         #expect(s?.enteredTS == 16)
-        // 起点 16 から 0.5 秒後の一致 post は猶予内なので捨てる
-        #expect(status(run([ev(.inputRequested, 10, detail: "Bash"), ev(.inputRequested, 16),
-                            ev(.activity, 16.5, detail: "Bash", phase: .post)])) == .waiting)
+        #expect(status(run([ev(.inputRequested, 10, detail: "Bash"), ev(.inputRequested, 16, detail: "Read"),
+                            ev(.activity, 16.5, detail: "Read", phase: .post)])) == .waiting)
+    }
+
+    @Test("working 中に猶予内で遅れて届いた input.requested は適用し、最終 ts は戻さない")
+    func lateInputRequestedWhileWorking() {
+        let t = run([ev(.activity, 1000.0001, detail: "Bash", phase: .pre), ev(.inputRequested, 1000.0, detail: "Bash")])
+        let s = t.sessions[SessionKey(source: .claude, session: "s")]
+        #expect(s?.status == .waiting)
+        #expect(s?.detail == "Bash")
+        #expect(s?.lastAppliedTS == 1000.0001)
+        #expect(s?.enteredTS == 1000.0)
+        // 続く猶予内の pre は waiting の猶予規則で捨てる
+        let t2 = run([ev(.activity, 1000.0001, detail: "Bash", phase: .pre), ev(.inputRequested, 1000.0, detail: "Bash"),
+                      ev(.activity, 1000.5, detail: "Bash", phase: .pre)])
+        #expect(status(t2) == .waiting)
+    }
+
+    @Test("猶予（grace）より古い input.requested は working 中でも捨てる")
+    func lateInputRequestedBeyondGraceDropped() {
+        #expect(status(run([ev(.activity, 1002, detail: "Bash", phase: .pre), ev(.inputRequested, 1000, detail: "Bash")])) == .working)
+    }
+
+    @Test("success 中に lastAppliedTS より古い input.requested は捨てる")
+    func lateInputRequestedInSuccessDropped() {
+        #expect(status(run([ev(.turnCompleted, 1000.0001), ev(.inputRequested, 1000.0, detail: "Bash")])) == .success)
     }
 
     @Test("捨てた activity は最終 ts を進めない")
