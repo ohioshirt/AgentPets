@@ -94,7 +94,7 @@ Codex: https://learn.chatgpt.com/docs/hooks.md 、2026-10-10 取得）。docs �
 }
 ```
 
-- `source`: `claude` / `codex` / `manual`。CLI の `--source` 引数で決める。
+- `source`: `claude` / `codex` / `manual`。`claude` / `codex` は CLI の `--source` 引数で決める（`manual` は CLI が受け付けない）。`manual` は旧形式をアプリ側で変換したときだけ付く（§2.4）。
 - `session`: hook stdin の `session_id`。
 - `project`: hook stdin の `cwd` の末尾要素。無ければ空文字。
 - `detail`: 吹き出し用の短い補足（ツール名など）。任意。
@@ -102,7 +102,8 @@ Codex: https://learn.chatgpt.com/docs/hooks.md 、2026-10-10 取得）。docs �
 - `ts`: アダプタ起動時刻（Unix 秒、小数）。hook 側に時刻が無いため、これが入手できる最も早い時刻。
   async hook は別プロセスで並行起動するので、`ts` の順はイベント発生順を保証しない（§2.1 の猶予規則で補う）。
 - 送信路は既存の `DistributedNotificationCenter`（名前 `com.agentpets.status`、object に JSON 文字列）。
-- `v` を持たない旧形式 `{status, message}` は `manual` ソースのイベントとして受ける（§2.4）。
+- `v` を持たない旧形式 `{status, message}` は `manual` ソースのイベントとして受ける（§2.4）。`v` が 2 以外、型に合わないものは捨てる。
+  アプリ側の decode で `project` と `detail` も `MessageText.sanitize` を通す。
 
 ## 2. reducer と集約
 
@@ -130,7 +131,7 @@ Codex: https://learn.chatgpt.com/docs/hooks.md 、2026-10-10 取得）。docs �
 - 猶予規則: waiting / success / error に入った `ts` から 1.0 秒以内の `ts` を持つ `activity` は捨てる。
   `PreToolUse` と `PermissionRequest` がほぼ同時に起動し `PreToolUse` 側が遅れた場合や、
   `Stop` より起動が遅れた `PostToolUse` が、より重要な状態を上書きするのを防ぐ。猶予秒数は設定値で、
-  初期値 1.0 秒は §4 の起動の揺れの実測で見直す。
+  初期値 1.0 秒は、採取した hook 起動の揺れ（最大 81.3 ms、§5）に対して足りると判断した。
   - 猶予の起点は、その状態に入るイベント（入り直しを含む）を適用するたびに取り直す。
     例外: waiting 中に届いた `detail` が空の `input.requested` は起点を取り直さない。同じ待ちの続きとみなす
     （Claude の `Notification(permission_prompt)` は `PermissionRequest` の約 6 秒後に来る。ここで取り直すと、
@@ -147,8 +148,8 @@ Codex: https://learn.chatgpt.com/docs/hooks.md 、2026-10-10 取得）。docs �
 |---|---|---|
 | working | `input.requested` / `turn.completed` / `turn.failed` / `turn.interrupted` / `agent.idle` / `session.ended` | 30 分で idle |
 | waiting | 一致する post `activity`（猶予後、§2.1）/ `turn.*` / `agent.idle` / `session.ended` | 30 分で idle |
-| error | `turn.started` / `activity`（猶予後）/ `session.ended` | 30 分で idle |
-| success | `turn.started` / `activity`（猶予後）/ `session.ended` | 2 時間で削除（優先度最下位の非 idle なので他を隠さない） |
+| error | `turn.*` / `input.requested` / `activity`（猶予後）/ `session.ended`（`agent.idle` では変わらない） | 30 分で idle |
+| success | `turn.*` / `input.requested` / `activity`（猶予後）/ `session.ended`（`agent.idle` では変わらない） | 2 時間で削除（優先度最下位の非 idle なので他を隠さない） |
 | idle | 任意のイベント | 2 時間で削除 |
 
 想定する固着ケースと抜け方:
@@ -162,7 +163,7 @@ Codex: https://learn.chatgpt.com/docs/hooks.md 、2026-10-10 取得）。docs �
 
 - 全セッションから優先度 waiting > error > working > success > idle の最上位を 1 つ選ぶ。同順位は最終イベントが新しい方。
 - セッション 0 件なら idle。
-- 吹き出し文: `<source> · <project>: <状態の短文>[ (<detail>)]`。`MessageText.sanitize`（旧 `StatusPayload.sanitize` から移設）の制御文字除去・120 文字切り詰めを通す。
+- 吹き出し文: `<source> · <project>: <状態の短文>[ (<detail>)]`（`project` が空なら `<source>: …`）。表示セッションが idle なら空文字。manual は `detail`（旧形式の `message`）だけを出す。`MessageText.sanitize`（旧 `StatusPayload.sanitize` から移設）の制御文字除去・120 文字切り詰めを通す。
 - 跳ねる動き（`DisplayState.celebrate`）は集約ではなく `HubStore.receive` が決める。受信したイベントが `turn.completed` で、
   集約結果の表示セッションがそのセッションで、かつ受信前後でセッション表が変化したときだけ立てる。
   猶予・順序保護で捨てられたイベントは表を変えないので跳ねない。`Stop` から始まるセッション（直前に状態が無い）も跳ねる。
@@ -200,8 +201,10 @@ manual セッションは実セッションを長時間隠さないよう短い�
 AgentPets/                           repo ルート
 ├── Packages/AgentPetsCore/          SwiftPM ローカルパッケージ（UI 非依存）。repo 直下に置く
 │   ├── Sources/AgentPetsCore/
-│   │   ├── AgentEvent.swift         正規化イベントと wire v2 の encode/decode
-│   │   ├── Normalizers/             Claude.swift / Codex.swift / Manual.swift
+│   │   ├── AgentEvent.swift         正規化イベントの型
+│   ├── WireCodec.swift          wire v2 と旧形式の encode/decode
+│   ├── MessageText.swift        吹き出し文の整形（制御文字除去・120 文字）
+│   │   ├── Normalizers/             ClaudeNormalizer.swift / CodexNormalizer.swift / HookNormalizer.swift（共通の入口）
 │   │   ├── SessionReducer.swift     (SessionTable, AgentEvent, now) -> SessionTable
 │   │   └── Aggregator.swift         SessionTable -> DisplayState
 │   ├── Sources/agentpets-hook/      stdin -> 正規化 -> DistributedNotification
@@ -262,7 +265,7 @@ AgentPets/                           repo ルート
 | manual | 旧形式 working は 10 秒で消える、waiting は 10 分で消える |
 | CLI | 空 stdin・壊れた JSON・未知イベントで exit 0 かつ stdout 空 |
 | CLI | 起動から終了までの所要時間を実測する |
-| CLI | 2 本を同時に起動したときの `ts` の差（起動の揺れ）を実測し、猶予 1.0 秒の妥当性を記録する |
+| CLI | 2 本を同時に起動した Debug ビルドの `main` 入口での `ts` 差を検査スクリプトで確かめる（最大 0.0 ms）。dyld・プロセス spawn・stdin 読み込みを含まないので、実際の hook 起動の揺れの上限にはならない。猶予 1.0 秒の根拠は Task 1 の hook 起動の揺れ（最大 81.3 ms、§5） |
 | reducer | waiting（detail=Bash）中に別ツール（detail=Read）の post `activity` が 2 秒後に来ても waiting のまま |
 | reducer | 捨てた `activity` は最終 `ts` を進めない／waiting への入り直しで猶予起点が更新される |
 | 集約 | B の waiting が TTL で消えて A の success が表に出ても跳ねない（`HubStore.receive` の判定として検査） |
@@ -300,7 +303,7 @@ AgentPets/                           repo ルート
 | Claude `Notification(agent_needs_input)` の `session_id` がどのセッションを指すか（agent view のシナリオ未実施） | 当該セッションのものなら `input.requested` に戻す。それまでは捨てる | 採取用 hook で実測 |
 | 許可不要のツールが許可ダイアログ表示中に並走するケース | §2.1 の detail 照合の成否（許可を要する並列ツールは直列だったため作れていない） | 採取用 hook で実測 |
 | 別プロセスの CLI からの DistributedNotification が sandbox 下のアプリ（Release ビルドの `~/.local/bin` 配置）に届くか | 現行の `agentpets-notify.sh` 経路と同じ仕組みなので届く見込みだが、自動テストは同一プロセス内のみ | Task 8 の結合確認 |
-| Release ビルドの CLI の起動の揺れ | 実測は Debug のみ。1.0 秒の猶予に対して余裕は大きい | Task 8 で必要なら実測 |
+| `agentpets-hook` 自体を hook から起動したときの揺れ | Task 1 の 81.3 ms は採取用 `capture-hook.sh` の値。CLI の計測は `main` 入口の差のみで Debug ビルド限定。1.0 秒の猶予に対して余裕は大きい | Task 8 で必要なら実測 |
 
 ## 6. 範囲外
 
