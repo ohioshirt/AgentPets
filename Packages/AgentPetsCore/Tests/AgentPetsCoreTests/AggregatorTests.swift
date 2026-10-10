@@ -34,6 +34,18 @@ struct AggregatorTests {
         #expect(PetStatus.success.priority > PetStatus.idle.priority)
     }
 
+    @Test("display でも error > working > success > idle の順に選ぶ（新しさより優先度）")
+    func priorityThroughDisplay() {
+        // 低い優先度ほど新しい ts にして、「新しいもの優先」の実装では落ちるようにする
+        let errorWins = Aggregator.display(table([ev(.turnFailed, 1, session: "e"), ev(.turnStarted, 2, session: "w"),
+                                                  ev(.turnCompleted, 3, session: "s")]))
+        #expect(errorWins.sessionKey?.session == "e")
+        let workingWins = Aggregator.display(table([ev(.turnStarted, 1, session: "w"), ev(.turnCompleted, 2, session: "s")]))
+        #expect(workingWins.sessionKey?.session == "w")
+        let successWins = Aggregator.display(table([ev(.turnCompleted, 1, session: "s"), ev(.sessionStarted, 2, session: "i")]))
+        #expect(successWins.sessionKey?.session == "s")
+    }
+
     @Test("同順位は最終イベントが新しい方")
     func newerWinsTie() {
         let d = Aggregator.display(table([ev(.turnStarted, 1, session: "a"), ev(.turnStarted, 2, session: "b")]))

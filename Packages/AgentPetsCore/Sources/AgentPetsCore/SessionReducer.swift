@@ -112,6 +112,10 @@ public enum SessionReducer {
             if state.status == .waiting || state.status == .working { enter(.idle, detail: "") }
         }
 
+        // 時計の巻き戻しを、状態に入り直さないイベント（空 detail の再入、agent.idle、session.started など）で
+        // 受けると enteredTS が未来の時刻のまま残り、以後の activity が猶予で捨てられ続ける。起点を巻き戻った時刻へ寄せる。
+        if state.enteredTS > event.ts { state.enteredTS = event.ts }
+
         // ここに来るのは ts が新しいか、時計の変化として受け入れた古いイベント。
         // 後者で max を取ると旧時刻が残り、以後のイベントが落ち続け TTL も効かなくなる。
         // 遅れて届いた input.requested は lastAppliedTS を戻さない（以後の activity は最新の ts と比べる）。
@@ -139,7 +143,15 @@ public enum SessionReducer {
     public static func expire(_ table: SessionTable, now: Double,
                               config: ReducerConfig = .init()) -> SessionTable {
         var table = table
-        for (key, state) in table.sessions {
+        for (key, original) in table.sessions {
+            var state = original
+            // 未来の ts（時計が進んでいた間に届いた、または不正な送信者）では age が負になり、どの TTL も効かない。
+            // 受信側の今の時刻へ引き戻し、ここから TTL を数える。
+            if state.lastAppliedTS > now {
+                state.lastAppliedTS = now
+                state.enteredTS = min(state.enteredTS, now)
+                table.sessions[key] = state
+            }
             let age = now - state.lastAppliedTS
             let isManual = key.source == .manual
             if age >= (isManual ? config.manualTTL : config.sessionTTL) {

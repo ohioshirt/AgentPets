@@ -57,6 +57,8 @@ struct HubStoreTests {
         var now = 0.0
         let hub = HubStore(sink: sink, clock: { now })
         hub.receive(AgentEvent(source: .claude, session: "old", project: "p", kind: .inputRequested, detail: "Bash", ts: 0))
+        // 受信時刻は ts より後（未来の ts は expire で now に引き戻されるので、時計は ts に合わせて進める）
+        now = 1795
         hub.receive(AgentEvent(source: .claude, session: "a", project: "p", kind: .turnCompleted, ts: 1795))
         now = 1800  // old の waiting が TTL 30 分で idle になる時刻
         // a への古い ts（順序保護で捨てられる）の turn.completed

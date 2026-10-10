@@ -1,7 +1,7 @@
 # Agent Event Hub 設計（第 1 期）
 
 - 日付: 2026-10-10
-- 状態: 実装済み（Task 8 の実機結合確認を除く）。実装と hook 採取結果（`docs/superpowers/notes/2026-10-10-hook-capture.md`）に合わせて改訂済み
+- 状態: 実装済み、Task 8 の実機結合確認まで完了。実装と hook 採取結果（`docs/superpowers/notes/2026-10-10-hook-capture.md`）に合わせて改訂済み
 - 対象 repo: AgentPets
 
 ## 目的
@@ -137,6 +137,9 @@ Codex: https://learn.chatgpt.com/docs/hooks.md 、2026-10-10 取得）。docs �
     （Claude の `Notification(permission_prompt)` は `PermissionRequest` の約 6 秒後に来る。ここで取り直すと、
     直後に届く一致する `PostToolUse` が猶予に捕まり waiting が固着する）。`detail` が空でない `input.requested` は従来どおり取り直す。
   - 捨てたイベントは「最後に適用した `ts`」を更新しない。
+  - 適用したイベントの `ts` が猶予の起点より古いとき（時計の巻き戻しを、状態に入り直さないイベントで受けたとき）は、
+    起点をそのイベントの `ts` に寄せる。起点が未来に残ると、以後の `activity` が猶予で捨てられ続けるため。
+    空 detail の再入が時計の巻き戻しを伴うときもこれが優先し、起点は巻き戻った時刻へ動く（ずれは猶予 1 秒分に収まる）。
 - waiting を抜ける `activity` は、waiting に入ったイベントと `detail`（ツール名）が一致する `PostToolUse` /
   `PostToolUseFailure` 由来のものに限る。許可ダイアログ表示中に並列実行中の別ツールの `PostToolUse` が届いても
   waiting を消さないため。`detail` が空の waiting（`elicitation_dialog` 等）は任意の `activity` で抜ける。
@@ -151,6 +154,11 @@ Codex: https://learn.chatgpt.com/docs/hooks.md 、2026-10-10 取得）。docs �
 | error | `turn.*` / `input.requested` / `activity`（猶予後）/ `session.ended`（`agent.idle` では変わらない） | 30 分で idle |
 | success | `turn.*` / `input.requested` / `activity`（猶予後）/ `session.ended`（`agent.idle` では変わらない） | 2 時間で削除（優先度最下位の非 idle なので他を隠さない） |
 | idle | 任意のイベント | 2 時間で削除 |
+
+TTL の評価時に「最後に適用した `ts`」が `now` より未来なら（時計が進んでいた間に届いたイベント、または不正な送信者）、
+`now` に引き戻してからそこを起点に数える（猶予の起点も `now` より未来なら `now` に寄せる）。そうしないと経過が負になり、どの TTL も効かない。
+以後の順序保護もこの `now` を基準にするので、元の未来の `ts` より古くても `now` 以降のイベントは受け入れる。
+`receive` は適用の直後に TTL を評価するため、送信側の時計が受信側より進んでいると、その場で引き戻される（同一マシンでは起きない）。
 
 想定する固着ケースと抜け方:
 
@@ -292,6 +300,7 @@ AgentPets/                           repo ルート
 | Claude の `SessionEnd` で async hook が完了まで走るか | 走る。同上 |
 | hook stdin の実フィールド | docs どおり。採取ノート「フィールド」 |
 | `agentpets-hook` の起動時間 | 最大 0.025 秒（Debug、wrapper 込み）。採取ノート「agentpets-hook CLI の実測」 |
+| 別プロセスの CLI から sandbox 下のアプリへの配送 | 届く。v2（`~/.local/bin` の Release ビルドの `agentpets-hook`）と旧形式の両方で、Debug ビルドのアプリが受信した。採取ノート「結合確認（Task 8）」 |
 | 起動の揺れ（猶予 1.0 秒の妥当性） | Claude の `PreToolUse` と `PermissionRequest` で最大 81.3 ms、Codex は 0.1 ms 前後で順序が逆になることがある（→ §2.1 の順序保護の例外）。採取ノート「起動の揺れ」 |
 
 採取で見つかった spec 外の挙動（Codex の自動承認でも `PermissionRequest` が来る、Claude のツール実行中の Esc はバックグラウンド化、
@@ -303,8 +312,7 @@ AgentPets/                           repo ルート
 |---|---|---|
 | Claude `Notification(agent_needs_input)` の `session_id` がどのセッションを指すか（agent view のシナリオ未実施） | 当該セッションのものなら `input.requested` に戻す。それまでは捨てる | 採取用 hook で実測 |
 | 許可不要のツールが許可ダイアログ表示中に並走するケース | §2.1 の detail 照合の成否（許可を要する並列ツールは直列だったため作れていない） | 採取用 hook で実測 |
-| 別プロセスの CLI からの DistributedNotification が sandbox 下のアプリ（Release ビルドの `~/.local/bin` 配置）に届くか | 現行の `agentpets-notify.sh` 経路と同じ仕組みなので届く見込みだが、自動テストは同一プロセス内のみ | Task 8 の結合確認 |
-| `agentpets-hook` 自体を hook から起動したときの揺れ | Task 1 の 81.3 ms は採取用 `capture-hook.sh` の値。CLI の計測は `main` 入口の差のみで Debug ビルド限定。1.0 秒の猶予に対して余裕は大きい | Task 8 で必要なら実測 |
+| `agentpets-hook` 自体を hook から起動したときの揺れ | Task 1 の 81.3 ms は採取用 `capture-hook.sh` の値。CLI の計測は `main` 入口の差のみで Debug ビルド限定。1.0 秒の猶予に対して余裕は大きい | Task 8 では実測していない。余裕が大きいので、猶予起因の不具合が見えたときに実測する |
 
 ## 6. 範囲外
 

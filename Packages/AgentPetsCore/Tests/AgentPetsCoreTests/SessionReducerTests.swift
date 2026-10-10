@@ -77,6 +77,28 @@ struct SessionReducerApplyTests {
         #expect(status(SessionReducer.expire(t, now: 900 + 30 * 60)) == .idle)
     }
 
+    @Test("時計の巻き戻し後の activity は、waiting のツール名照合も通さず適用する（§2.1）")
+    func clockJumpBypassesDetailMatching() {
+        let t = run([ev(.inputRequested, 1000, detail: "Bash"), ev(.activity, 900, detail: "Read", phase: .pre)])
+        #expect(status(t) == .working)
+    }
+
+    @Test("時計の巻き戻しを状態に入り直さないイベントで受けても、猶予の起点が未来に残らない", arguments: [
+        // (前の状態に入るイベント, 巻き戻しを伴うが状態に入り直さないイベント)
+        (EventKind.inputRequested, EventKind.inputRequested),  // waiting 中の空 detail 再入
+        (.turnFailed, .agentIdle),                            // error 中の agent.idle
+        (.turnCompleted, .sessionStarted),                    // success 中の session.started
+    ])
+    func clockJumpDoesNotLeaveFutureGraceOrigin(enter: EventKind, jump: EventKind) {
+        let enterDetail = enter == .inputRequested ? "Bash" : ""
+        let t = run([ev(enter, 1000, detail: enterDetail), ev(jump, 900)])
+        let s = t.sessions[SessionKey(source: .claude, session: "s")]
+        #expect((s?.enteredTS ?? .infinity) <= 900)
+        // 巻き戻った時計の上で、猶予（1 秒）を過ぎた一致する post activity は working にする
+        #expect(status(run([ev(enter, 1000, detail: enterDetail), ev(jump, 900),
+                            ev(.activity, 902, detail: "Bash", phase: .post)])) == .working)
+    }
+
     @Test("waiting と error は turn.started で working に戻る", arguments: [EventKind.inputRequested, .turnFailed])
     func turnStartedExits(kind: EventKind) {
         #expect(status(run([ev(kind, 10, detail: "Bash"), ev(.turnStarted, 11)])) == .working)
@@ -223,10 +245,37 @@ struct SessionReducerExpireTests {
         #expect(status(SessionReducer.expire(t, now: 30 * minute)) == .idle)
     }
 
-    @Test("waiting と error は 30 分で idle", arguments: [EventKind.inputRequested, .turnFailed])
-    func waitingErrorTTL(kind: EventKind) {
+    @Test("waiting と error は 29 分無音では残り、30 分で idle", arguments: [
+        (EventKind.inputRequested, PetStatus.waiting),
+        (.turnFailed, .error),
+    ])
+    func waitingErrorTTL(kind: EventKind, before: PetStatus) {
         let t = run([ev(kind, 0)])
+        #expect(status(SessionReducer.expire(t, now: 29 * minute)) == before)
         #expect(status(SessionReducer.expire(t, now: 30 * minute)) == .idle)
+    }
+
+    @Test("idle と success は 2 時間未満では消えない", arguments: [EventKind.sessionStarted, .turnCompleted])
+    func sessionTTLLowerBound(kind: EventKind) {
+        let t = run([ev(kind, 0)])
+        #expect(SessionReducer.expire(t, now: 119 * minute).sessions.count == 1)
+    }
+
+    @Test("未来の ts を持つセッションも、now を基準に TTL が効く")
+    func futureTimestampStillExpires() {
+        // 時計が進んでいた間に届いた waiting。時計を戻した後は、そのセッションにイベントが来なくても消えるべき。
+        let t = run([ev(.inputRequested, 1_000_000, detail: "Bash")])
+        let anchored = SessionReducer.expire(t, now: 0)
+        #expect(status(anchored) == .waiting)
+        #expect(status(SessionReducer.expire(anchored, now: 30 * minute)) == .idle)
+        #expect(SessionReducer.expire(anchored, now: 120 * minute).sessions.isEmpty)
+    }
+
+    @Test("極端に未来の ts（1e300）でも消える")
+    func absurdTimestampStillExpires() {
+        // 同じ経路だが、他プロセスが送れる最大級の値で、引き算の桁落ち（now - 1e300 が now を失う）に頼らず消えることを見る
+        let anchored = SessionReducer.expire(run([ev(.inputRequested, 1e300, detail: "Bash")]), now: 0)
+        #expect(status(SessionReducer.expire(anchored, now: 30 * minute)) == .idle)
     }
 
     @Test("success は 30 分では残り、2 時間で削除")
