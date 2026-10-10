@@ -11,8 +11,28 @@ struct SpeechBubble: View {
     /// ホバーで出す全文。空なら SwiftUI は何も表示しない（吹き出しが出るときは message と同じか全文が入る）。
     var tooltip: String = ""
 
+    @State private var isHovering = false
+
+    /// ホバー中に全文を出せるか。全文が空なら通常表示のまま。
+    private var expanded: Bool { isHovering && !tooltip.isEmpty }
+
     var body: some View {
-        Text(message)
+        // 通常表示の Text をレイアウト用に残し（ホバーで ContentView の配置が動かないように）、
+        // ホバー中はその上へ全文を重ねる。ウィンドウは 96pt 幅の固定寄りなので、
+        // ウィンドウ自体は広げず、下のペットに被せて表示する。
+        bubble(Text(message).lineLimit(2))
+            .opacity(expanded ? 0 : 1)
+            .overlay(alignment: .top) {
+                if expanded {
+                    bubble(Text(tooltip).lineLimit(nil).fixedSize(horizontal: false, vertical: true))
+                }
+            }
+            .onHover { isHovering = $0 }
+            .help(tooltip)
+    }
+
+    private func bubble<Content: View>(_ text: Content) -> some View {
+        text
             .font(.system(size: 11, weight: .bold))
             .foregroundColor(.black)
             .padding(.horizontal, 10)
@@ -22,8 +42,6 @@ struct SpeechBubble: View {
                     .fill(Color.white.opacity(0.92))
                     .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
             )
-            .lineLimit(2)
             .multilineTextAlignment(.center)
-            .help(tooltip)
     }
 }

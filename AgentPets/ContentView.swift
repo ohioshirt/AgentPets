@@ -15,6 +15,7 @@ struct ContentView: View {
         VStack(spacing: 8) {
             if PetDisplay.showsBubble(message: viewModel.message) {
                 SpeechBubble(message: viewModel.message, tooltip: viewModel.tooltip)
+                    .zIndex(1) // ホバーで全文が重なるとき、ペットより前に描く
             }
 
             switch PetDisplay.mode(sheet: library.sheet) {
