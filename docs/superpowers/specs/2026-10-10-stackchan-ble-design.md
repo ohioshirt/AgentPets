@@ -3,7 +3,7 @@
 - 日付: 2026-10-10
 - 状態: 承認済み（サブエージェントレビュー: 契約・Mac 側 APPROVE、ファームウェア・安全 APPROVE）
 - 対象: AgentPets（第 2 期: BLE 出力）と新規 repo `~/work/tools/stackchan-pet`（第 3 期: StackChan ファームウェア）
-- 前提: 第 1 期 `docs/superpowers/specs/2026-10-10-agent-event-hub-design.md`（実装済み、`f9c7f3b`）
+- 前提: 第 1 期 `docs/superpowers/specs/2026-10-10-agent-event-hub-design.md`（実装済み、`c59b253`）
 
 ## 目的
 
